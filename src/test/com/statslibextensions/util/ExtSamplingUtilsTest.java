@@ -20,12 +20,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.Ranges;
 import com.google.common.primitives.Doubles;
-import com.statslibextensions.math.LogMath2;
+import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.math.MutableDoubleCount;
 import com.statslibextensions.statistics.CountedDataDistribution;
-import com.statslibextensions.statistics.SamplingUtils;
+import com.statslibextensions.statistics.ExtSamplingUtils;
 
-public class SamplingUtilsTest {
+public class ExtSamplingUtilsTest {
 
   @Test
   public void testFindLogAlpha1() {
@@ -34,36 +34,36 @@ public class SamplingUtilsTest {
             Math.log(2d / 11d), Math.log(1d / 11d) };
 
     final double logAlpha1 =
-        SamplingUtils.findLogAlpha(testLogWeights, 0d, 1);
+        ExtSamplingUtils.findLogAlpha(testLogWeights, 0d, 1);
 
     double pTotal = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < testLogWeights.length; i++) {
       pTotal =
-          LogMath2.add(pTotal,
+          ExtLogMath.add(pTotal,
               Math.min(testLogWeights[i] + logAlpha1, 0d));
     }
     assertEquals(Math.log(1), pTotal, 1e-7);
     assertEquals(0, logAlpha1, 1e-7);
 
     final double logAlpha2 =
-        SamplingUtils.findLogAlpha(testLogWeights, 0d, 2);
+        ExtSamplingUtils.findLogAlpha(testLogWeights, 0d, 2);
 
     pTotal = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < testLogWeights.length; i++) {
       pTotal =
-          LogMath2.add(pTotal,
+          ExtLogMath.add(pTotal,
               Math.min(testLogWeights[i] + logAlpha2, 0d));
     }
     assertEquals(Math.log(2), pTotal, 1e-7);
     assertEquals(0.6931471805599d, logAlpha2, 1e-7);
 
     final double logAlpha3 =
-        SamplingUtils.findLogAlpha(testLogWeights, 0d, 3);
+        ExtSamplingUtils.findLogAlpha(testLogWeights, 0d, 3);
 
     pTotal = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < testLogWeights.length; i++) {
       pTotal =
-          LogMath2.add(pTotal,
+          ExtLogMath.add(pTotal,
               Math.min(testLogWeights[i] + logAlpha3, 0d));
     }
     assertEquals(Math.log(3), pTotal, 1e-7);
@@ -80,15 +80,15 @@ public class SamplingUtilsTest {
         -4.954271557120856, -2.757046979784638, 
         -2.757046979784638, -4.954271557120856 };
 
-    SamplingUtils.logNormalize(testLogWeights);
+    ExtSamplingUtils.logNormalize(testLogWeights);
 
     final double logAlpha1 =
-        SamplingUtils.findLogAlpha(testLogWeights, 0d, 5);
+        ExtSamplingUtils.findLogAlpha(testLogWeights, 0d, 5);
 
     double pTotal = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < testLogWeights.length; i++) {
       pTotal =
-          LogMath2.add(pTotal,
+          ExtLogMath.add(pTotal,
               Math.min(testLogWeights[i] + logAlpha1, 0d));
     }
     assertEquals(Math.log(5), pTotal, 1e-7);
@@ -132,7 +132,7 @@ public class SamplingUtilsTest {
 //    SamplingUtils.logNormalize(testLogWeights);
 
     final double logAlpha1 =
-        SamplingUtils.findLogAlpha(testLogWeights, totalLogWeight, 10);
+        ExtSamplingUtils.findLogAlpha(testLogWeights, totalLogWeight, 10);
 
     assertTrue(Double.isInfinite(logAlpha1));
   }
@@ -150,7 +150,7 @@ public class SamplingUtilsTest {
     final Random rng = new Random(123569869l);
     final int N = 2;
     DataDistribution<String> wfResampleResults =
-        SamplingUtils.waterFillingResample(testLogWeights, 0d,
+        ExtSamplingUtils.waterFillingResample(testLogWeights, 0d,
             Lists.newArrayList(testObjects), rng, N);
 
     for (Entry<String, ? extends Number> logWeight : wfResampleResults
@@ -173,7 +173,7 @@ public class SamplingUtilsTest {
     final Random rng = new Random(123569869l);
     final int N = 2;
     DataDistribution<String> wfResampleResults =
-        SamplingUtils.waterFillingResample(testLogWeights, 0d,
+        ExtSamplingUtils.waterFillingResample(testLogWeights, 0d,
             Lists.newArrayList(testObjects), rng, N);
 
     assertEquals(0d, wfResampleResults.getMaxValue(), 1e-7);
@@ -199,7 +199,7 @@ public class SamplingUtilsTest {
     final Random rng = new Random(123569869l);
     final int N = 2;
     DataDistribution<String> wfResampleResults =
-        SamplingUtils.waterFillingResample(testLogWeights, 0d,
+        ExtSamplingUtils.waterFillingResample(testLogWeights, 0d,
             Lists.newArrayList(testObjects), rng, N);
 
     for (Entry<String, ? extends Number> logWeight : wfResampleResults
@@ -222,7 +222,7 @@ public class SamplingUtilsTest {
     final Random rng = new Random(123569869l);
     final int N = 3;
     DataDistribution<String> wfResampleResults =
-        SamplingUtils.waterFillingResample(testLogWeights, 0d,
+        ExtSamplingUtils.waterFillingResample(testLogWeights, 0d,
             Lists.newArrayList(testObjects), rng, N);
 
     assertEquals(Math.log(5d / 11d), wfResampleResults.getMaxValue(),
@@ -230,7 +230,7 @@ public class SamplingUtilsTest {
     assertEquals("o1", wfResampleResults.getMaxValueKey());
 
     final double logAlpha =
-        SamplingUtils.findLogAlpha(testLogWeights, 0d, N);
+        ExtSamplingUtils.findLogAlpha(testLogWeights, 0d, N);
 
     List<Double> logWeights = Lists.newArrayList();
     for (Entry<String, ? extends Number> entry : wfResampleResults
@@ -242,7 +242,7 @@ public class SamplingUtilsTest {
       }
     }
 
-    assertTrue(SamplingUtils.isLogNormalized(logWeights, 1e-7));
+    assertTrue(ExtSamplingUtils.isLogNormalized(logWeights, 1e-7));
   }
 
   /**
@@ -260,7 +260,7 @@ public class SamplingUtilsTest {
     final Random rng = new Random(123569869l);
     final int N = 4;
     DataDistribution<String> wfResampleResults =
-        SamplingUtils.waterFillingResample(testLogWeights, 0d,
+        ExtSamplingUtils.waterFillingResample(testLogWeights, 0d,
             Lists.newArrayList(testObjects), rng, N);
 
     assertEquals(Math.log(6d / 17d), wfResampleResults.getMaxValue(),
@@ -273,12 +273,12 @@ public class SamplingUtilsTest {
     assertEquals("o1", tmpResults.getMaxValueKey());
 
     final double logAlpha =
-        SamplingUtils.findLogAlpha(testLogWeights, 0d, N);
+        ExtSamplingUtils.findLogAlpha(testLogWeights, 0d, N);
 
     double pTotal = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < testLogWeights.length; i++) {
       pTotal =
-          LogMath2.add(pTotal,
+          ExtLogMath.add(pTotal,
               Math.min(testLogWeights[i] + logAlpha, 0d));
     }
     assertEquals(Math.log(N), pTotal, 1e-7);
@@ -296,7 +296,7 @@ public class SamplingUtilsTest {
       i++;
     }
 
-    assertTrue(SamplingUtils.isLogNormalized(logWeights, 1e-7));
+    assertTrue(ExtSamplingUtils.isLogNormalized(logWeights, 1e-7));
   }
 
   /**
@@ -313,7 +313,7 @@ public class SamplingUtilsTest {
 
     CountedDataDistribution<String> sampleDist = new CountedDataDistribution<>(false);
     for (int i = 0; i < R; i++) {
-      List<String> result = SamplingUtils.sampleNoReplaceMultipleLogScale(
+      List<String> result = ExtSamplingUtils.sampleNoReplaceMultipleLogScale(
           logWeights, 0d, domain, random, numSamples);
       sampleDist.incrementAll(result);
     }

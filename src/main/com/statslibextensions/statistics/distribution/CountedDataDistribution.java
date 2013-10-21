@@ -1,8 +1,9 @@
-package com.statslibextensions.statistics;
+package com.statslibextensions.statistics.distribution;
 
 import gov.sandia.cognition.collection.ScalarMap;
 import gov.sandia.cognition.factory.Factory;
 import gov.sandia.cognition.learning.algorithm.AbstractBatchAndIncrementalLearner;
+import gov.sandia.cognition.math.LogMath;
 import gov.sandia.cognition.math.MathUtil;
 import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.statistics.AbstractDataDistribution;
@@ -21,7 +22,6 @@ import java.util.Random;
 
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Doubles;
-import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.math.MutableDoubleCount;
 
 /**
@@ -301,14 +301,6 @@ public class CountedDataDistribution<KeyType> extends
    */
   protected double total;
 
-  public static <T> CountedDataDistribution<T> create(boolean isLogScale) {
-    return new CountedDataDistribution<T>(isLogScale);
-  }
-
-  public static <T> CountedDataDistribution<T> create(int numEntries, boolean isLogScale) {
-    return new CountedDataDistribution<T>(numEntries, isLogScale);
-  }
-
   /**
    * Default constructor
    */
@@ -403,11 +395,7 @@ public class CountedDataDistribution<KeyType> extends
 
   @Override
   public double decrement(KeyType key, double value) {
-    if (isLogScale) {
-      return this.adjust(key, value, -1);
-    } else {
-      return super.decrement(key, value);
-    }
+    return super.decrement(key, value);
   }
 
   @Override
@@ -448,7 +436,7 @@ public class CountedDataDistribution<KeyType> extends
         final double p = entry.getValue() - denom;
         if (Doubles.compare(p, identity) != 0) {
           entropy =
-              ExtLogMath
+              LogMath
                   .subtract(entropy, p + p / MathUtil.log2(Math.E));
         }
 
@@ -536,7 +524,7 @@ public class CountedDataDistribution<KeyType> extends
 
   @Override
   public double increment(KeyType key, final double value) {
-    return this.adjust(key, value, 1);
+    return this.increment(key, value, 1);
   }
 
   /**
@@ -549,8 +537,7 @@ public class CountedDataDistribution<KeyType> extends
    * @param count
    * @return
    */
-  public double adjust(KeyType key, final double value, int count) {
-    Preconditions.checkArgument(count != 0);
+  public double increment(KeyType key, final double value, int count) {
     // TODO FIXME terrible hack!
     final MutableDoubleCount entry =
         (MutableDoubleCount) this.map.get(key);
@@ -567,22 +554,12 @@ public class CountedDataDistribution<KeyType> extends
       }
       newValue = value;
     } else {
-      final double sum;
-      if (this.isLogScale) {
-        if (count < 0)
-          sum = ExtLogMath.subtract(entry.value, value);
-        else
-          sum = ExtLogMath.add(entry.value, value);
-      } else {
-        sum = entry.value + value;
-      }
+      final double sum =
+          this.isLogScale ? LogMath.add(entry.value, value)
+              : entry.value + value;
       if (sum >= identity) {
         delta = value;
-        final int newCount = entry.count + count;
-        if (newCount == 0) 
-          this.map.remove(key);
-        else
-          entry.set(sum, newCount);
+        entry.set(sum, entry.count + count);
       } else {
         delta = -entry.value;
         entry.set(identity);
@@ -591,26 +568,12 @@ public class CountedDataDistribution<KeyType> extends
     }
 
     if (this.isLogScale) {
-      if (count < 0) 
-        this.total = ExtLogMath.subtract(this.total, value);
-      else
-        this.total = ExtLogMath.add(this.total, value);
+      this.total = LogMath.add(this.total, value);
     } else {
       this.total += delta;
     }
-    
+
     return newValue;
-  }
-  
-  public double[] getNormalizedWeights() {
-    double[] weights = new double[this.getDomainSize()];
-    int i = 0;
-    for (MutableDouble md : this.map.values()) {
-      MutableDoubleCount mdc = (MutableDoubleCount)md;
-      weights[i] = mdc.value - this.total;
-      i++;
-    }
-    return weights;
   }
 
   @Override
@@ -620,15 +583,7 @@ public class CountedDataDistribution<KeyType> extends
 
   @Override
   public void incrementAll(ScalarMap<? extends KeyType> other) {
-    for (java.util.Map.Entry<? extends KeyType, ? extends Number> entry : other.asMap().entrySet()) {
-      if (entry.getValue() instanceof MutableDoubleCount) {
-        final MutableDoubleCount value = (MutableDoubleCount) entry.getValue();
-        this.adjust(entry.getKey(), value.doubleValue(), value.count);
-      } else {
-        this.increment(entry.getKey(), entry.getValue().doubleValue());
-      }
-
-    }
+    super.incrementAll(other);
   }
 
   public boolean isLogScale() {
@@ -638,14 +593,12 @@ public class CountedDataDistribution<KeyType> extends
   @Override
   public KeyType sample(Random random) {
     if (this.isLogScale) {
-      //double w = random.nextDouble();
-      double w = Math.log(random.nextDouble());
+      double w = random.nextDouble();
       for (final ScalarMap.Entry<KeyType> entry : this.entrySet()) {
-        final double thisLogWeight = this.getLogFraction(entry.getKey());
-        if (w <= thisLogWeight) { 
+        w -= this.getFraction(entry.getKey());
+        if (w <= 0d) {
           return entry.getKey();
         }
-        w = ExtLogMath.subtract(w, thisLogWeight);
       }
       return null;
     } else {
@@ -680,15 +633,6 @@ public class CountedDataDistribution<KeyType> extends
   }
 
   @Override
-  public String toString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append("CountedDataDistribution [isLogScale=")
-        .append(isLogScale).append(", total=").append(total)
-        .append(", map=").append(map).append("]");
-    return builder.toString();
-  }
-
-  @Override
   public void set(final KeyType key, final double value) {
     // TODO FIXME terrible hack!
     final MutableDoubleCount entry =
@@ -718,7 +662,7 @@ public class CountedDataDistribution<KeyType> extends
         this.map.put(key, new MutableDoubleCount(totalValue, count));
 
         if (this.isLogScale) {
-          this.total = ExtLogMath.add(this.total, totalValue);
+          this.total = LogMath.add(this.total, totalValue);
         } else {
           this.total += totalValue;
         }
@@ -727,13 +671,13 @@ public class CountedDataDistribution<KeyType> extends
       if (this.isLogScale) {
         if (entry.value > totalValue) {
           final double totalsSum =
-              ExtLogMath.add(this.total, totalValue);
+              LogMath.add(this.total, totalValue);
           Preconditions.checkState(totalsSum >= entry.value);
-          this.total = ExtLogMath.subtract(totalsSum, entry.value);
+          this.total = LogMath.subtract(totalsSum, entry.value);
         } else {
           this.total =
-              ExtLogMath.add(this.total,
-                  ExtLogMath.subtract(totalValue, entry.value));
+              LogMath.add(this.total,
+                  LogMath.subtract(totalValue, entry.value));
         }
       } else {
         this.total += totalValue - entry.value;

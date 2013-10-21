@@ -2,7 +2,7 @@ package com.statslibextensions.math;
 
 import gov.sandia.cognition.math.LogMath;
 
-public class LogMath2 extends LogMath {
+public class ExtLogMath extends LogMath {
 
   /**
    * Adds two log-domain values. It uses a trick to prevent numerical overflow and underflow.

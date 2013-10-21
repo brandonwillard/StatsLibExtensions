@@ -6,10 +6,6 @@ import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.math.matrix.mtj.AbstractMTJMatrix;
-import gov.sandia.cognition.math.matrix.mtj.DenseMatrixFactoryMTJ;
-import gov.sandia.cognition.math.matrix.mtj.DiagonalMatrixFactoryMTJ;
-import gov.sandia.cognition.math.matrix.mtj.DiagonalMatrixMTJ;
-import gov.sandia.cognition.math.matrix.mtj.decomposition.SingularValueDecompositionMTJ;
 import gov.sandia.cognition.statistics.distribution.ChiSquareDistribution;
 import gov.sandia.cognition.statistics.distribution.InverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
@@ -19,7 +15,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Random;
 
-import no.uib.cipr.matrix.DenseCholesky;
 import no.uib.cipr.matrix.DenseVector;
 import no.uib.cipr.matrix.UpperSPDDenseMatrix;
 
@@ -28,36 +23,38 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
-public class StatisticsUtils {
+public class ExtStatisticsUtils {
 
-  private static final double[] a = {2.2352520354606839287, 161.02823106855587881,
-      1067.6894854603709582, 18154.981253343561249, 0.065682337918207449113};
+  private static class NormalCDFConstants {
+    public static final double[] a = {2.2352520354606839287, 161.02823106855587881,
+        1067.6894854603709582, 18154.981253343561249, 0.065682337918207449113};
+  
+    public static final double[] b = {47.20258190468824187, 976.09855173777669322,
+        10260.932208618978205, 45507.789335026729956};
+  
+    public static final double[] c = {0.39894151208813466764, 8.8831497943883759412,
+        93.506656132177855979, 597.27027639480026226, 2494.5375852903726711, 6848.1904505362823326,
+        11602.651437647350124, 9842.7148383839780218, 1.0765576773720192317e-8};
+  
+    public static final int CUTOFF = 16; /* Cutoff allowing exact "*" and "/" */
+  
+    public static final double[] d = {22.266688044328115691, 235.38790178262499861,
+        1519.377599407554805, 6485.558298266760755, 18615.571640885098091, 34900.952721145977266,
+        38912.003286093271411, 19685.429676859990727};
+  
+    public static final double DBL_EPSILON = 2.2204460492503131e-016;
+    public static final double M_1_SQRT_2PI = 0.398942280401432677939946059934;
+  
+    public static final double M_SQRT_32 = 5.656854249492380195206754896838; /* The square root of 32 */
 
-  private static final double[] b = {47.20258190468824187, 976.09855173777669322,
-      10260.932208618978205, 45507.789335026729956};
+    public static final double[] p_ = {0.21589853405795699, 0.1274011611602473639,
+        0.022235277870649807, 0.001421619193227893466, 2.9112874951168792e-5, 0.02307344176494017303};
+  
+    public static final double[] q = {1.28426009614491121, 0.468238212480865118,
+        0.0659881378689285515, 0.00378239633202758244, 7.29751555083966205e-5};
+  }
 
-  private static final double[] c = {0.39894151208813466764, 8.8831497943883759412,
-      93.506656132177855979, 597.27027639480026226, 2494.5375852903726711, 6848.1904505362823326,
-      11602.651437647350124, 9842.7148383839780218, 1.0765576773720192317e-8};
-
-  private static final int CUTOFF = 16; /* Cutoff allowing exact "*" and "/" */
-
-  private static final double[] d = {22.266688044328115691, 235.38790178262499861,
-      1519.377599407554805, 6485.558298266760755, 18615.571640885098091, 34900.952721145977266,
-      38912.003286093271411, 19685.429676859990727};
-
-  private static final double DBL_EPSILON = 2.2204460492503131e-016;
-  private static final double M_1_SQRT_2PI = 0.398942280401432677939946059934;
-
-  private static final double M_SQRT_32 = 5.656854249492380195206754896838; /* The square root of 32 */
-
-  static final public double MACHINE_EPS = StatisticsUtils.determineMachineEpsilon();
-
-  private static final double[] p_ = {0.21589853405795699, 0.1274011611602473639,
-      0.022235277870649807, 0.001421619193227893466, 2.9112874951168792e-5, 0.02307344176494017303};
-
-  private static final double[] q = {1.28426009614491121, 0.468238212480865118,
-      0.0659881378689285515, 0.00378239633202758244, 7.29751555083966205e-5};
+  static final public double MACHINE_EPS = ExtStatisticsUtils.determineMachineEpsilon();
 
   private static double determineMachineEpsilon() {
     final double d1 = 1.3333333333333333d;
@@ -70,60 +67,6 @@ public class StatisticsUtils {
     }
 
     return d4;
-  }
-
-  /**
-   * Returns, for A, an R s.t. R^T * R = A
-   * 
-   * @param matrix
-   * @return
-   */
-  public static Matrix getCholR(Matrix matrix) {
-    final DenseCholesky cholesky =
-        DenseCholesky.factorize(DenseMatrixFactoryMTJ.INSTANCE.copyMatrix(matrix)
-            .getInternalMatrix());
-
-    final Matrix covSqrt =
-        DenseMatrixFactoryMTJ.INSTANCE.createWrapper(new no.uib.cipr.matrix.DenseMatrix(cholesky
-            .getU()));
-
-    assert covSqrt.transpose().times(covSqrt).equals(matrix, 1e-4);
-
-    return covSqrt;
-  }
-
-  public static Matrix getDiagonalInverse(Matrix S, double lowerTolerance) {
-    Preconditions.checkArgument(lowerTolerance >= 0d);
-    final Matrix result =
-        MatrixFactory.getDefault().createMatrix(S.getNumColumns(), S.getNumColumns());
-    for (int i = 0; i < Math.min(S.getNumColumns(), S.getNumRows()); i++) {
-      final double sVal = S.getElement(i, i);
-      if (Math.abs(sVal) > lowerTolerance) result.setElement(i, i, 1d / sVal);
-    }
-    return result;
-  }
-
-
-  public static Matrix getDiagonalSqrt(Matrix mat, double tolerance) {
-    Preconditions.checkArgument(tolerance > 0d);
-    final Matrix result = mat.clone();
-    for (int i = 0; i < Math.min(result.getNumColumns(), result.getNumRows()); i++) {
-      final double sqrt = Math.sqrt(result.getElement(i, i));
-      if (sqrt > tolerance) result.setElement(i, i, sqrt);
-    }
-    return result;
-  }
-
-  public static Matrix getDiagonalSquare(Matrix S, double tolerance) {
-    Preconditions.checkArgument(tolerance >= 0d);
-    final Matrix result =
-        MatrixFactory.getDefault().createMatrix(S.getNumColumns(), S.getNumColumns());
-    for (int i = 0; i < Math.min(S.getNumColumns(), S.getNumRows()); i++) {
-      final double sVal = S.getElement(i, i);
-      final double sValSq = sVal * sVal;
-      if (Math.abs(sValSq) > tolerance) result.setElement(i, i, sValSq);
-    }
-    return result;
   }
 
   public static Matrix getInvWishartVar(InverseWishartDistribution invWishart) {
@@ -143,38 +86,6 @@ public class StatisticsUtils {
       }
     }
     return cov;
-  }
-
-  public static Matrix getPseudoInverseReduced(Matrix matrix) {
-    final SingularValueDecompositionMTJ svd = SingularValueDecompositionMTJ.create(matrix);
-
-    final int effRank = svd.effectiveRank(1e-9);
-
-    final DiagonalMatrixMTJ roots =
-        DiagonalMatrixFactoryMTJ.INSTANCE.createMatrix(matrix.getNumColumns());
-    final Matrix U = svd.getU();
-    for (int i = 0; i < effRank; i++) {
-      roots.setElement(i, 1d / svd.getS().getElement(i, i));
-    }
-
-    final Matrix firstHalf = U.times(roots).getSubMatrix(0, U.getNumRows() - 1, 0, effRank - 1);
-
-    Matrix V = svd.getVtranspose().transpose();
-    V = V.getSubMatrix(0, V.getNumRows() - 1, 0, effRank - 1);
-    final Matrix result = V.times(firstHalf.transpose());
-
-    return result;
-  }
-
-  /**
-   * Uses the underlying arrays in these vector objects for a hash code.
-   */
-  public static int hashCodeVector(Vector vec) {
-    if (vec instanceof gov.sandia.cognition.math.matrix.mtj.DenseVector) {
-      return Arrays.hashCode(((gov.sandia.cognition.math.matrix.mtj.DenseVector) vec).getArray());
-    } else {
-      return vec.hashCode();
-    }
   }
 
   public static double logEvaluateNormal(Vector input, Vector mean, Matrix cov) {
@@ -266,7 +177,7 @@ public class StatisticsUtils {
     double xden, xnum, temp, del, eps, xsq, y;
     int i;
     boolean lower, upper;
-    eps = StatisticsUtils.DBL_EPSILON * 0.5;
+    eps = NormalCDFConstants.DBL_EPSILON * 0.5;
     lower = !i_tail;
     upper = i_tail;
 
@@ -274,16 +185,16 @@ public class StatisticsUtils {
     if (y <= 0.67448975) { /* Normal.quantile(3/4, 1, 0) = 0.67448975 */
       if (y > eps) {
         xsq = x * x;
-        xnum = StatisticsUtils.a[4] * xsq;
+        xnum = NormalCDFConstants.a[4] * xsq;
         xden = xsq;
         for (i = 0; i < 3; i++) {
-          xnum = (xnum + StatisticsUtils.a[i]) * xsq;
-          xden = (xden + StatisticsUtils.b[i]) * xsq;
+          xnum = (xnum + NormalCDFConstants.a[i]) * xsq;
+          xden = (xden + NormalCDFConstants.b[i]) * xsq;
         }
       } else {
         xnum = xden = 0.0;
       }
-      temp = x * (xnum + StatisticsUtils.a[3]) / (xden + StatisticsUtils.b[3]);
+      temp = x * (xnum + NormalCDFConstants.a[3]) / (xden + NormalCDFConstants.b[3]);
       if (lower) {
         p = 0.5 + temp;
       }
@@ -300,18 +211,18 @@ public class StatisticsUtils {
       }
     }
 
-    else if (y <= StatisticsUtils.M_SQRT_32) {
+    else if (y <= NormalCDFConstants.M_SQRT_32) {
       /* Evaluate pnorm for 0.67448975 = Normal.quantile(3/4, 1, 0) < |x| <= sqrt(32) ~= 5.657 */
 
-      xnum = StatisticsUtils.c[8] * y;
+      xnum = NormalCDFConstants.c[8] * y;
       xden = y;
       for (i = 0; i < 7; i++) {
-        xnum = (xnum + StatisticsUtils.c[i]) * y;
-        xden = (xden + StatisticsUtils.d[i]) * y;
+        xnum = (xnum + NormalCDFConstants.c[i]) * y;
+        xden = (xden + NormalCDFConstants.d[i]) * y;
       }
-      temp = (xnum + StatisticsUtils.c[7]) / (xden + StatisticsUtils.d[7]);
+      temp = (xnum + NormalCDFConstants.c[7]) / (xden + NormalCDFConstants.d[7]);
 
-      xsq = ((int) (y * StatisticsUtils.CUTOFF)) * 1.0 / StatisticsUtils.CUTOFF;
+      xsq = ((int) (y * NormalCDFConstants.CUTOFF)) * 1.0 / NormalCDFConstants.CUTOFF;
       del = (y - xsq) * (y + xsq);
       if (log_p) {
         p = (-xsq * xsq * 0.5) + (-del * 0.5) + Math.log(temp);
@@ -341,17 +252,17 @@ public class StatisticsUtils {
 
       /* Evaluate pnorm for x in (-37.5, -5.657) union (5.657, 37.5) */
       xsq = 1.0 / (x * x);
-      xnum = StatisticsUtils.p_[5] * xsq;
+      xnum = NormalCDFConstants.p_[5] * xsq;
       xden = xsq;
       for (i = 0; i < 4; i++) {
-        xnum = (xnum + StatisticsUtils.p_[i]) * xsq;
-        xden = (xden + StatisticsUtils.q[i]) * xsq;
+        xnum = (xnum + NormalCDFConstants.p_[i]) * xsq;
+        xden = (xden + NormalCDFConstants.q[i]) * xsq;
       }
-      temp = xsq * (xnum + StatisticsUtils.p_[4]) / (xden + StatisticsUtils.q[4]);
-      temp = (StatisticsUtils.M_1_SQRT_2PI - temp) / y;
+      temp = xsq * (xnum + NormalCDFConstants.p_[4]) / (xden + NormalCDFConstants.q[4]);
+      temp = (NormalCDFConstants.M_1_SQRT_2PI - temp) / y;
 
       // do_del(x);
-      xsq = ((int) (x * StatisticsUtils.CUTOFF)) * 1.0 / StatisticsUtils.CUTOFF;
+      xsq = ((int) (x * NormalCDFConstants.CUTOFF)) * 1.0 / NormalCDFConstants.CUTOFF;
       del = (x - xsq) * (x + xsq);
       if (log_p) {
         p = (-xsq * xsq * 0.5) + (-del * 0.5) + Math.log(temp);
@@ -383,30 +294,6 @@ public class StatisticsUtils {
 
   }
 
-  public static Matrix rootOfSemiDefinite(Matrix matrix) {
-    return StatisticsUtils.rootOfSemiDefinite(matrix, false, -1);
-  }
-
-  public static Matrix rootOfSemiDefinite(Matrix matrix, boolean effRankDimResult, int rank) {
-    final SingularValueDecompositionMTJ svd = SingularValueDecompositionMTJ.create(matrix);
-
-    final int effRank = rank > 0 ? rank : svd.effectiveRank(1e-9);
-
-    final DiagonalMatrixMTJ roots =
-        DiagonalMatrixFactoryMTJ.INSTANCE.createMatrix(matrix.getNumColumns());
-    final Matrix U = svd.getU();
-    for (int i = 0; i < effRank; i++) {
-      roots.setElement(i, Math.sqrt(svd.getS().getElement(i, i)));
-    }
-
-    Matrix result = U.times(roots);
-    if (effRankDimResult) {
-      result = result.getSubMatrix(0, result.getNumRows() - 1, 0, effRank - 1);
-    }
-
-    return result;
-  }
-
   public static Matrix sampleInvWishart(InverseWishartDistribution invWish, Random rng) {
     final int p = invWish.getInverseScale().getNumRows();
     final Vector Zdiag = VectorFactory.getDenseDefault().createVector(p);
@@ -426,7 +313,7 @@ public class StatisticsUtils {
     }
 
     final Matrix scaleSqrt =
-        StatisticsUtils.rootOfSemiDefinite(invWish.getInverseScale().pseudoInverse(1e-9));
+        ExtMatrixUtils.rootOfSemiDefinite(invWish.getInverseScale().pseudoInverse(1e-9));
     final Matrix k = Z.times(scaleSqrt);
     final Matrix wishSample = k.transpose().times(k);
     final Matrix invWishSample = wishSample.pseudoInverse(1e-9);
@@ -441,16 +328,4 @@ public class StatisticsUtils {
     return sum;
   }
 
-  /**
-   * Uses the underlying arrays in these vector objects for comparison.
-   */
-  public static boolean vectorEquals(Vector vec1, Vector vec2) {
-    if ((vec1 instanceof gov.sandia.cognition.math.matrix.mtj.DenseVector)
-        && (vec2 instanceof gov.sandia.cognition.math.matrix.mtj.DenseVector)) {
-      return Arrays.equals(((gov.sandia.cognition.math.matrix.mtj.DenseVector) vec1).getArray(),
-          ((gov.sandia.cognition.math.matrix.mtj.DenseVector) vec2).getArray());
-    } else {
-      return Objects.equal(vec1, vec2);
-    }
-  }
 }

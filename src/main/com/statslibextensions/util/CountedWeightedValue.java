@@ -3,41 +3,41 @@ package com.statslibextensions.util;
 import gov.sandia.cognition.util.DefaultWeightedValue;
 import gov.sandia.cognition.util.WeightedValue;
 
-public class WrappedWeightedValue<T> extends DefaultWeightedValue<T> {
+public class CountedWeightedValue<T> extends DefaultWeightedValue<T> {
 
   private static final long serialVersionUID = -2223108371382713360L;
 
   private int count = 0;
 
-  public static <ValueType> WrappedWeightedValue<ValueType> create(
+  public static <ValueType> CountedWeightedValue<ValueType> create(
       final ValueType value, final double weight) {
-    return new WrappedWeightedValue<ValueType>(value, weight);
+    return new CountedWeightedValue<ValueType>(value, weight);
   }
 
-  public static <ValueType> WrappedWeightedValue<ValueType> create(
+  public static <ValueType> CountedWeightedValue<ValueType> create(
       final ValueType value, final double weight, int count) {
-    return new WrappedWeightedValue<ValueType>(value, weight, count);
+    return new CountedWeightedValue<ValueType>(value, weight, count);
   }
 
-  public WrappedWeightedValue() {
+  public CountedWeightedValue() {
     super();
   }
 
-  public WrappedWeightedValue(T value) {
+  public CountedWeightedValue(T value) {
     super(value);
   }
 
-  public WrappedWeightedValue(T value, double weight) {
+  public CountedWeightedValue(T value, double weight) {
     super(value, weight);
     this.count++;
   }
 
-  public WrappedWeightedValue(T value, double weight, int count) {
+  public CountedWeightedValue(T value, double weight, int count) {
     super(value, weight);
     this.count = count;
   }
 
-  public WrappedWeightedValue(WeightedValue<? extends T> other) {
+  public CountedWeightedValue(WeightedValue<? extends T> other) {
     super(other);
   }
 

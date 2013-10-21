@@ -13,13 +13,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Doubles;
-import com.statslibextensions.math.LogMath2;
+import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.statistics.distribution.WFCountedDataDistribution;
 
-public class SamplingUtils {
+public class ExtSamplingUtils {
   
   final static Logger log = Logger
-      .getLogger(SamplingUtils.class);
+      .getLogger(ExtSamplingUtils.class);
 
   public static <D> WFCountedDataDistribution<D> waterFillingResample(final double[] logWeights, 
     final double logWeightSum, final List<D> domain, final Random random, final int N) {
@@ -35,7 +35,7 @@ public class SamplingUtils {
       if (Double.compare(normedLogWeight, Double.NEGATIVE_INFINITY) > 0d) {
         nonZeroObjects.add(domain.get(i));
         nonZeroLogWeights.add(normedLogWeight);
-        nonZeroTotal = LogMath2.add(nonZeroTotal, normedLogWeight);
+        nonZeroTotal = ExtLogMath.add(nonZeroTotal, normedLogWeight);
         cumNonZeroLogWeights.add(nonZeroTotal);
       }
     }
@@ -93,7 +93,7 @@ public class SamplingUtils {
             keeperObjects.add(object);
           } else {
             belowObjects.add(object);
-            belowPTotal = LogMath2.add(belowPTotal, logQ);
+            belowPTotal = ExtLogMath.add(belowPTotal, logQ);
             belowLogWeights.add(logQ);
           }
         }
@@ -164,7 +164,7 @@ public class SamplingUtils {
     Preconditions.checkArgument(zeroPrec > 0d && zeroPrec < 1e-3);
     double logTotal = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < logWeights.length; i++) {
-      logTotal = LogMath2.add(logTotal, logWeights[i]);
+      logTotal = ExtLogMath.add(logTotal, logWeights[i]);
     }
     return Math.abs(logTotal) < zeroPrec;
   }
@@ -190,7 +190,7 @@ public class SamplingUtils {
     int k = 0;
     int pk = k;
     
-    Preconditions.checkArgument(SamplingUtils.isLogNormalized(sLogWeights, 1e-7));
+    Preconditions.checkArgument(ExtSamplingUtils.isLogNormalized(sLogWeights, 1e-7));
 
     while (true) {
       pk = k;
@@ -206,10 +206,10 @@ public class SamplingUtils {
             logTailSumTmp = Double.NEGATIVE_INFINITY;
             log.warn("numerical instability");
           } else {
-            logTailSumTmp = LogMath2.subtract(logTailSum, thisLogWeight);
+            logTailSumTmp = ExtLogMath.subtract(logTailSum, thisLogWeight);
           }
         } else {
-          logTailSumTmp = LogMath2.subtract(logTailSum, thisLogWeight);
+          logTailSumTmp = ExtLogMath.subtract(logTailSum, thisLogWeight);
         }
 
         Preconditions.checkState(!Double.isNaN(logTailSumTmp));
@@ -240,7 +240,7 @@ public class SamplingUtils {
     double value = Math.log(random.nextDouble());
     final int lastIndex = logProbs.length - 1;
     for (int i = 0; i < lastIndex; i++) {
-      value = LogMath2.subtract(value, logProbs[i] - totalLogProbs);
+      value = ExtLogMath.subtract(value, logProbs[i] - totalLogProbs);
       if (Double.isNaN(value) || value == Double.NEGATIVE_INFINITY) {
         return i;
       }
@@ -431,13 +431,13 @@ public class SamplingUtils {
     double pTotal = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < logWeights.length; i++) {
       pTotal =
-          LogMath2.add(pTotal, logWeights[i]);
+          ExtLogMath.add(pTotal, logWeights[i]);
     }
     return pTotal;
   }
 
   public static void logNormalize(final double[] logWeights) {
-    final double totalLogWeights = SamplingUtils.logSum(
+    final double totalLogWeights = ExtSamplingUtils.logSum(
         logWeights);
     for (int i = 0; i < logWeights.length; i++) {
       logWeights[i] -= totalLogWeights;
@@ -449,7 +449,7 @@ public class SamplingUtils {
     double[] result = new double[logLikelihoods.size()];
     for (int i = 0; i < logLikelihoods.size(); i++) {
       pTotal =
-          LogMath2.add(pTotal, logLikelihoods.get(i));
+          ExtLogMath.add(pTotal, logLikelihoods.get(i));
       result[i] = pTotal;
     }
     return result;
