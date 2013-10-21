@@ -321,7 +321,7 @@ public class ExtSamplingUtils {
    * @param ans
    * @param rng
    */
-  static void ProbSampleNoReplace(int n, double[] p, int[] perm, int nans,
+  static void probSampleNoReplace(int n, double[] p, int[] perm, int nans,
       int[] ans, Random rng) {
     double rT, mass, totalmass;
     int i, j, k, n1;
@@ -381,7 +381,7 @@ public class ExtSamplingUtils {
     }
     int[] perm = new int[logWeights.length];
     int[] ans = new int[numSamples];
-    ProbSampleNoReplace(logWeights.length, weights, perm, numSamples, ans, random);
+    probSampleNoReplace(logWeights.length, weights, perm, numSamples, ans, random);
     final List<D> samples = Lists.newArrayListWithCapacity(numSamples);
     for (int i = 0; i < ans.length; i++) {
       samples.add(domain.get(ans[i]-1));
