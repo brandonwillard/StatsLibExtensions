@@ -311,7 +311,7 @@ public class ExtSamplingUtilsTest {
     final int numSamples = 1;
     final int R = 3000000;
 
-    CountedDataDistribution<String> sampleDist = new CountedDataDistribution<>(false);
+    CountedDataDistribution<String> sampleDist = new CountedDataDistribution<String>(false);
     for (int i = 0; i < R; i++) {
       List<String> result = ExtSamplingUtils.sampleNoReplaceMultipleLogScale(
           logWeights, 0d, domain, random, numSamples);
