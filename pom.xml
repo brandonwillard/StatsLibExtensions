@@ -78,11 +78,11 @@
   </repositories>  
   
   <dependencies>
-	<dependency>
-		<groupId>com.googlecode.netlib-java</groupId>
-		<artifactId>netlib-java</artifactId>
-		<version>1.0</version>
-	</dependency>
+<!-- 	<dependency> -->
+<!-- 		<groupId>com.googlecode.netlib-java</groupId> -->
+<!-- 		<artifactId>netlib-java</artifactId> -->
+<!-- 		<version>1.0</version> -->
+<!-- 	</dependency> -->
 	<dependency>
 		<groupId>org.slf4j</groupId>
 		<artifactId>slf4j-log4j12</artifactId>
@@ -94,21 +94,21 @@
       <version>4.8.1</version>
       <scope>test</scope>
     </dependency> 
-	<dependency>
-		<groupId>org.apache.commons</groupId>
-		<artifactId>commons-math</artifactId>
-		<version>2.2</version>
-	</dependency>
+<!-- 	<dependency> -->
+<!-- 		<groupId>org.apache.commons</groupId> -->
+<!-- 		<artifactId>commons-math</artifactId> -->
+<!-- 		<version>2.2</version> -->
+<!-- 	</dependency> -->
 	<dependency>
 		<groupId>org.apache.commons</groupId>
 		<artifactId>commons-lang3</artifactId>
 		<version>3.1</version>
 	</dependency>
-	<dependency>
-		<groupId>net.sf.trove4j</groupId>
-		<artifactId>trove4j</artifactId>
-		<version>3.0.2</version>
-	</dependency>
+<!-- 	<dependency> -->
+<!-- 		<groupId>net.sf.trove4j</groupId> -->
+<!-- 		<artifactId>trove4j</artifactId> -->
+<!-- 		<version>3.0.2</version> -->
+<!-- 	</dependency> -->
 <!--     <dependency> -->
 <!--       <groupId>ca.umontreal.iro</groupId> -->
 <!--       <artifactId>ssj</artifactId> -->
@@ -116,7 +116,12 @@
 <!--     </dependency>    -->
   	<dependency>
   		<groupId>gov.sandia.foundry</groupId>
-  		<artifactId>cognitive-foundry</artifactId>
+  		<artifactId>gov-sandia-cognition-common-core</artifactId>
+  		<version>3.3.3</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>gov.sandia.foundry</groupId>
+  		<artifactId>gov-sandia-cognition-learning-core</artifactId>
   		<version>3.3.3</version>
   	</dependency>
 <!--   	<dependency> -->
@@ -130,12 +135,12 @@
 <!--   		<artifactId>google-collections</artifactId> -->
 <!--   		<version>1.0</version> -->
 <!--   	</dependency> -->
-    <dependency>
-      <groupId>com.googlecode.combinatoricslib</groupId>
-      <artifactId>combinatoricslib</artifactId>
-      <version>2.0</version>
-      <scope>compile</scope>
-    </dependency>
+<!--     <dependency> -->
+<!--       <groupId>com.googlecode.combinatoricslib</groupId> -->
+<!--       <artifactId>combinatoricslib</artifactId> -->
+<!--       <version>2.0</version> -->
+<!--       <scope>compile</scope> -->
+<!--     </dependency> -->
   	<dependency>
   	  <groupId>com.google.guava</groupId>
   	  <artifactId>guava</artifactId>
