@@ -174,9 +174,15 @@ public class ExtSamplingUtils {
    * The logTotalWeight is important for numerical stability.  Since
    * we're looping through and subtracting log values, we need
    * to know what "zero" is (relative to the numeric precision). 
+   * <br>
+   * Note: the log weights must already be normalized.  Even though
+   * the total must be provided, no normalization happens here.
+   * <br>
+   * TODO: should get rid of the total weight, or normalize when not, but
+   * I'd rather get rid of the isLogNormalized check...
    * 
-   * @param logWeights
-   * @param logTotalWeight
+   * @param logWeights normalized log weights
+   * @param logTotalWeight log weights sum
    * @param N
    * @return
    */

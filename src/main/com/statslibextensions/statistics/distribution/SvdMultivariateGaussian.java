@@ -9,39 +9,44 @@ import java.util.Random;
 import com.statslibextensions.math.matrix.SvdMatrix;
 import com.statslibextensions.util.ExtMatrixUtils;
 
-public class AdjMultivariateGaussian extends MultivariateGaussian {
+/**
+ * A multivariate gaussian that tracks the SVD of its covariance matrix.
+ * @author bwillar0
+ *
+ */
+public class SvdMultivariateGaussian extends MultivariateGaussian {
 
   private static final long serialVersionUID = -7465667744835664792L;
 
-  public AdjMultivariateGaussian() {
+  public SvdMultivariateGaussian() {
     super();
   }
 
-  public AdjMultivariateGaussian(AdjMultivariateGaussian other) {
+  public SvdMultivariateGaussian(SvdMultivariateGaussian other) {
     this.setMean(other.getMean());
     this.setCovariance(other.getCovariance());
   }
 
-  public AdjMultivariateGaussian(int dimensionality) {
+  public SvdMultivariateGaussian(int dimensionality) {
     super(dimensionality);
   }
 
-  public AdjMultivariateGaussian(MultivariateGaussian other) {
+  public SvdMultivariateGaussian(MultivariateGaussian other) {
     this.setMean(other.getMean());
     this.setCovariance((other.getCovariance() instanceof SvdMatrix)
         ? other.getCovariance()
         : new SvdMatrix(other.getCovariance()));
   }
 
-  public AdjMultivariateGaussian(Vector mean, SvdMatrix covariance) {
+  public SvdMultivariateGaussian(Vector mean, SvdMatrix covariance) {
     this.setMean(mean);
     this.setCovariance(covariance);
   }
 
   @Override
   public MultivariateGaussian clone() {
-    final AdjMultivariateGaussian clone =
-        (AdjMultivariateGaussian) super.clone();
+    final SvdMultivariateGaussian clone =
+        (SvdMultivariateGaussian) super.clone();
     return clone;
   }
 
