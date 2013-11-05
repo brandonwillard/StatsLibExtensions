@@ -26,6 +26,8 @@ public class FruewirthSchnatterEV1Distribution extends
     LinearMixtureModel<Double, UnivariateGaussian> implements
     ClosedFormComputableDistribution<Double> {
 
+  private static final long serialVersionUID = 4066555201948905331L;
+
   final protected static List<UnivariateGaussian> fsEV1distributions = ImmutableList
       .<UnivariateGaussian> builder().add(new UnivariateGaussian(5.09d, 4.50d))
       .add(new UnivariateGaussian(3.29d, 2.02d))
@@ -98,6 +100,11 @@ public class FruewirthSchnatterEV1Distribution extends
 
   public static class PDF extends FruewirthSchnatterEV1Distribution implements
       ProbabilityDensityFunction<Double> {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -189389572065576844L;
 
     protected PDF() {
       super();
@@ -202,14 +209,14 @@ public class FruewirthSchnatterEV1Distribution extends
     @Override
     public void setDistributions(
         ArrayList<? extends UnivariateGaussian> distributions) {
-      // FIXME these values are constant; we shouldn't use this interface, i suppose.
-      throw new IllegalAccessError();
+      if (this.distributions != null)
+        throw new IllegalAccessError();
     }
 
     @Override
     public void setPriorWeights(double[] priorWeights) {
-      // FIXME these values are constant; we shouldn't use this interface, i suppose.
-      throw new IllegalAccessError();
+      if (this.priorWeights != null)
+        throw new IllegalAccessError();
     }
 
     @Override
