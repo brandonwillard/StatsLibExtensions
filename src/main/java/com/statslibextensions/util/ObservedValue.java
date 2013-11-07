@@ -1,13 +1,59 @@
 package com.statslibextensions.util;
 
-public class ObservedValue<T, D> {
+public class ObservedValue<O, D> {
+  
+  public static class SimObservedValue<O, D, T> extends ObservedValue<O, D> {
+
+    final protected T trueState;
+
+    protected SimObservedValue(long time, O observedState, T trueState) {
+      super(time, observedState);
+      this.trueState = trueState;
+    }
+
+    protected SimObservedValue(long time, O observedState, D data, T trueState) {
+      super(time, observedState, data);
+      this.trueState = trueState;
+    }
+
+    public static <O, D, T> SimObservedValue<O, D, T> create(long time, O observedState, D data, T trueState) {
+      return new SimObservedValue<O, D, T>(time, observedState, data, trueState);
+    }
+  
+//    public static <O, T> SimObservedValue<O, Void, T> create(long time, O observedState, T trueValue) {
+//      return new SimObservedValue<O, Void, T>(time, observedState, null, trueValue);
+//    }
+//  
+//    public static <O, T> SimObservedValue<O, Void, T> create(O observedState, T trueState) {
+//      return new SimObservedValue<O, Void, T>(System.currentTimeMillis(), observedState, null, trueState);
+//    }
+  
+    public static <O, D, T> SimObservedValue<O, D, T> create(O observedState, D data, T trueState) {
+      return new SimObservedValue<O, D, T>(System.currentTimeMillis(), observedState, data, trueState);
+    }
+
+    public T getTrueState() {
+      return this.trueState;
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder builder = new StringBuilder();
+      builder.append("SimObservedValue [trueState=").append(this.trueState)
+          .append(", time=").append(this.time).append(", observedValue=")
+          .append(this.observedValue).append(", data=").append(this.data)
+          .append("]");
+      return builder.toString();
+    }
+    
+  }
   
   final protected long time;
-  final protected T observedValue;
+  final protected O observedValue;
   final protected D data;
   
-  public static <T, D> ObservedValue<T, D> create(long time, T observedState, D data) {
-    return new ObservedValue<T, D>(time, observedState, data);
+  public static <O, D> ObservedValue<O, D> create(long time, O observedState, D data) {
+    return new ObservedValue<O, D>(time, observedState, data);
   }
 
   /**
@@ -16,8 +62,8 @@ public class ObservedValue<T, D> {
    * @param observedState
    * @return
    */
-  public static <T> ObservedValue<T, Void> create(long time, T observedState) {
-    return new ObservedValue<T, Void>(time, observedState, null);
+  public static <O> ObservedValue<O, Void> create(long time, O observedState) {
+    return new ObservedValue<O, Void>(time, observedState, null);
   }
 
   /**
@@ -26,8 +72,8 @@ public class ObservedValue<T, D> {
    * @param observedState
    * @return
    */
-  public static <T> ObservedValue<T, Void> create(T observedState) {
-    return new ObservedValue<T, Void>(System.currentTimeMillis(), observedState, null);
+  public static <O> ObservedValue<O, Void> create(O observedState) {
+    return new ObservedValue<O, Void>(System.currentTimeMillis(), observedState, null);
   }
 
   /**
@@ -37,17 +83,17 @@ public class ObservedValue<T, D> {
    * @param data
    * @return
    */
-  public static <T, D> ObservedValue<T, D> create(T observedState, D data) {
-    return new ObservedValue<T, D>(System.currentTimeMillis(), observedState, data);
+  public static <O, D> ObservedValue<O, D> create(O observedState, D data) {
+    return new ObservedValue<O, D>(System.currentTimeMillis(), observedState, data);
   }
 
-  protected ObservedValue(long time, T observedState, D data) {
+  protected ObservedValue(long time, O observedState, D data) {
     this.time = time;
     this.observedValue = observedState;
     this.data = data;
   }
 
-  protected ObservedValue(long time, T observedState) {
+  protected ObservedValue(long time, O observedState) {
     this.time = time;
     this.observedValue = observedState;
     this.data = null;
@@ -57,7 +103,7 @@ public class ObservedValue<T, D> {
     return time;
   }
 
-  public T getObservedValue() {
+  public O getObservedValue() {
     return observedValue;
   }
   
