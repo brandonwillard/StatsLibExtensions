@@ -63,17 +63,17 @@ public class CountedDataDistributionTest {
     Assert.assertEquals(testDist.getDomainSize(),
         testDistClone.getDomainSize());
     Assert.assertEquals(testDist.getTotal(),
-        testDistClone.getTotal());
+        testDistClone.getTotal(), 1e-7);
     Assert.assertEquals(testDist.getTotalCount(),
         testDistClone.getTotalCount());
     Assert.assertEquals(testDist.getLogFraction("item1"),
-        testDistClone.getLogFraction("item1"));
+        testDistClone.getLogFraction("item1"), 1e-7);
     Assert.assertEquals(testDist.getLogFraction("item2"),
-        testDistClone.getLogFraction("item2"));
+        testDistClone.getLogFraction("item2"), 1e-7);
     Assert.assertEquals(testDist.getLogFraction("item3"),
-        testDistClone.getLogFraction("item3"));
+        testDistClone.getLogFraction("item3"), 1e-7);
     Assert.assertEquals(testDist.getLogFraction("item4"),
-        testDistClone.getLogFraction("item4"));
+        testDistClone.getLogFraction("item4"), 1e-7);
     Assert.assertEquals(testDist.getCount("item1"),
         testDistClone.getCount("item1"));
     Assert.assertEquals(testDist.getCount("item2"),

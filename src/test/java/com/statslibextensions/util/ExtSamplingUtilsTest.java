@@ -22,7 +22,7 @@ import com.google.common.collect.Ranges;
 import com.google.common.primitives.Doubles;
 import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.math.MutableDoubleCount;
-import com.statslibextensions.statistics.CountedDataDistribution;
+import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.statistics.ExtSamplingUtils;
 
 public class ExtSamplingUtilsTest {

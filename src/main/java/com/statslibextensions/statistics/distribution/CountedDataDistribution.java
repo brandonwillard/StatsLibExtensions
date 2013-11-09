@@ -3,7 +3,6 @@ package com.statslibextensions.statistics.distribution;
 import gov.sandia.cognition.collection.ScalarMap;
 import gov.sandia.cognition.factory.Factory;
 import gov.sandia.cognition.learning.algorithm.AbstractBatchAndIncrementalLearner;
-import gov.sandia.cognition.math.LogMath;
 import gov.sandia.cognition.math.MathUtil;
 import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.statistics.AbstractDataDistribution;
@@ -22,6 +21,7 @@ import java.util.Random;
 
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Doubles;
+import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.math.MutableDoubleCount;
 
 /**
@@ -301,6 +301,14 @@ public class CountedDataDistribution<KeyType> extends
    */
   protected double total;
 
+  public static <T> CountedDataDistribution<T> create(boolean isLogScale) {
+    return new CountedDataDistribution<T>(isLogScale);
+  }
+
+  public static <T> CountedDataDistribution<T> create(int numEntries, boolean isLogScale) {
+    return new CountedDataDistribution<T>(numEntries, isLogScale);
+  }
+
   /**
    * Default constructor
    */
@@ -436,7 +444,7 @@ public class CountedDataDistribution<KeyType> extends
         final double p = entry.getValue() - denom;
         if (Doubles.compare(p, identity) != 0) {
           entropy =
-              LogMath
+              ExtLogMath
                   .subtract(entropy, p + p / MathUtil.log2(Math.E));
         }
 
@@ -555,7 +563,7 @@ public class CountedDataDistribution<KeyType> extends
       newValue = value;
     } else {
       final double sum =
-          this.isLogScale ? LogMath.add(entry.value, value)
+          this.isLogScale ? ExtLogMath.add(entry.value, value)
               : entry.value + value;
       if (sum >= identity) {
         delta = value;
@@ -568,7 +576,7 @@ public class CountedDataDistribution<KeyType> extends
     }
 
     if (this.isLogScale) {
-      this.total = LogMath.add(this.total, value);
+      this.total = ExtLogMath.add(this.total, value);
     } else {
       this.total += delta;
     }
@@ -662,7 +670,7 @@ public class CountedDataDistribution<KeyType> extends
         this.map.put(key, new MutableDoubleCount(totalValue, count));
 
         if (this.isLogScale) {
-          this.total = LogMath.add(this.total, totalValue);
+          this.total = ExtLogMath.add(this.total, totalValue);
         } else {
           this.total += totalValue;
         }
@@ -671,13 +679,13 @@ public class CountedDataDistribution<KeyType> extends
       if (this.isLogScale) {
         if (entry.value > totalValue) {
           final double totalsSum =
-              LogMath.add(this.total, totalValue);
+              ExtLogMath.add(this.total, totalValue);
           Preconditions.checkState(totalsSum >= entry.value);
-          this.total = LogMath.subtract(totalsSum, entry.value);
+          this.total = ExtLogMath.subtract(totalsSum, entry.value);
         } else {
           this.total =
-              LogMath.add(this.total,
-                  LogMath.subtract(totalValue, entry.value));
+              ExtLogMath.add(this.total,
+                  ExtLogMath.subtract(totalValue, entry.value));
         }
       } else {
         this.total += totalValue - entry.value;
@@ -693,5 +701,69 @@ public class CountedDataDistribution<KeyType> extends
       entry.set(identity, count);
     }
   }
+
+  /**
+   * Increments by amount value and sets the extra info of count.<br>
+   * Note: count does not factor into the value amount, and thus weight of the
+   * key.
+   * 
+   * @param key
+   * @param value
+   * @param count
+   * @return
+   */
+  public double adjust(KeyType key, final double value, int count) {
+    Preconditions.checkArgument(count != 0);
+    // TODO FIXME terrible hack!
+    final MutableDoubleCount entry =
+        (MutableDoubleCount) this.map.get(key);
+    double newValue;
+    double delta;
+    final double identity =
+        this.isLogScale ? Double.NEGATIVE_INFINITY : 0d;
+    if (entry == null) {
+      if (value > identity) {
+        this.map.put(key, new MutableDoubleCount(value, count));
+        delta = value;
+      } else {
+        delta = identity;
+      }
+      newValue = value;
+    } else {
+      final double sum;
+      if (this.isLogScale) {
+        if (count < 0)
+          sum = ExtLogMath.subtract(entry.value, value);
+        else
+          sum = ExtLogMath.add(entry.value, value);
+      } else {
+        sum = entry.value + value;
+      }
+      if (sum >= identity) {
+        delta = value;
+        final int newCount = entry.count + count;
+        if (newCount == 0) 
+          this.map.remove(key);
+        else
+          entry.set(sum, newCount);
+      } else {
+        delta = -entry.value;
+        entry.set(identity);
+      }
+      newValue = entry.value;
+    }
+
+    if (this.isLogScale) {
+      if (count < 0) 
+        this.total = ExtLogMath.subtract(this.total, value);
+      else
+        this.total = ExtLogMath.add(this.total, value);
+    } else {
+      this.total += delta;
+    }
+    
+    return newValue;
+  }
+  
 
 }

@@ -3,9 +3,11 @@ package com.statslibextensions.statistics.bayesian;
 import java.util.List;
 import java.util.Random;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.statslibextensions.util.ExtMatrixUtils;
 import com.statslibextensions.util.ObservedValue;
+import com.statslibextensions.util.ObservedValue.SimObservedValue;
 
 import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.DenseVector;
@@ -296,7 +298,12 @@ public class DlmUtils {
 //        C.minus(Wtil.times(A).times(Wtil.transpose()));
 //    return new MultivariateGaussian(mSmooth, CSmooth);
 //  }
-  
+
+  public static List<SimObservedValue<Vector, Matrix, Vector>> sampleDlm(Random random, int T, 
+    MultivariateGaussian initialPrior, KalmanFilter filter) {
+    return sampleDlm(random, T, initialPrior, filter, null);
+  }
+
   /**
    * Sample observations and states from a DLM up to time {@code T}.
    * States are evolved according to the structural equations, then
@@ -305,12 +312,15 @@ public class DlmUtils {
    * 
    * @param random
    * @param T
+   * @param function 
    * @return A list with <observation, state> samples
    */
-  public static List<Pair<Vector, Vector>> sampleDlm(Random random, int T, 
-      MultivariateGaussian initialPrior, KalmanFilter filter) {
-    List<Pair<Vector, Vector>> results = Lists.newArrayList();
+  public static List<SimObservedValue<Vector, Matrix, Vector>> sampleDlm(Random random, int T, 
+      MultivariateGaussian initialPrior, KalmanFilter filter, 
+      Function<Matrix, Matrix> xGenerator) {
+    List<SimObservedValue<Vector, Matrix, Vector>> results = Lists.newArrayList();
 
+    Matrix curX = null;
     Vector currentState = initialPrior.getMean().clone();
     for (int i = 0; i < T; i++) {
 
@@ -321,14 +331,22 @@ public class DlmUtils {
       currentState.plusEquals(filter.getModel().getB().times(
           filter.getCurrentInput()));
 
-      final Matrix F = filter.getModel().getC();
+      final Matrix F;
+      if (xGenerator != null) {
+        F = xGenerator.apply(curX);
+        curX = F;
+      } else {
+        F = filter.getModel().getC();
+      }
+
       Vector observationMean = F.times(currentState);
       Matrix measurementCovSqrt = ExtMatrixUtils.getCholR(
           filter.getMeasurementCovariance());
       Vector observation = MultivariateGaussian.sample(observationMean, 
           measurementCovSqrt, random);
   
-      results.add(DefaultPair.create(observation, currentState.clone()));
+      results.add(SimObservedValue.<Vector, Matrix, Vector>create(
+          i, observation, curX, currentState.clone()));
     }
     
     return results;

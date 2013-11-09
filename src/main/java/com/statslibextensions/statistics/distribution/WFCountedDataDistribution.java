@@ -4,7 +4,7 @@ import gov.sandia.cognition.statistics.DataDistribution;
 
 import java.util.Map;
 
-import com.statslibextensions.statistics.CountedDataDistribution;
+import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 
 /**
  * Just a wrapper that carries water-filling debug information.
