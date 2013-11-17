@@ -23,8 +23,10 @@ public class ExtSamplingUtils {
 
   public static <D> WFCountedDataDistribution<D> waterFillingResample(final double[] logWeights, 
     final double logWeightSum, final List<D> domain, final Random random, final int N) {
-    Preconditions.checkArgument(domain.size() == logWeights.length);
-    Preconditions.checkArgument(logWeights.length >= N);
+    Preconditions.checkArgument(domain.size() == logWeights.length,
+        "number of log weights must be equal to the support size");
+    Preconditions.checkArgument(logWeights.length >= N,
+        "number of log weights must be >= N");
 
     final List<Double> nonZeroLogWeights = Lists.newArrayList();
     final List<Double> cumNonZeroLogWeights = Lists.newArrayList();
@@ -40,7 +42,8 @@ public class ExtSamplingUtils {
       }
     }
     
-    Preconditions.checkState(Math.abs(Iterables.getLast(cumNonZeroLogWeights)) < 1e-7);
+    Preconditions.checkState(Math.abs(Iterables.getLast(cumNonZeroLogWeights)) < 1e-7,
+        "log weights must be normalized by the give log weight sum");
     
     boolean wasWaterFillingApplied = false;
     List<Double> resultLogWeights;
@@ -122,7 +125,7 @@ public class ExtSamplingUtils {
             keeperLogWeights.addAll(belowWeightsResampled);
           } 
           
-          Preconditions.checkState(isLogNormalized(keeperLogWeights, 1e-7));
+          assert isLogNormalized(keeperLogWeights, 1e-7);
 
           resultObjects = keeperObjects;
           resultLogWeights = keeperLogWeights;
@@ -196,7 +199,7 @@ public class ExtSamplingUtils {
     int k = 0;
     int pk = k;
     
-    Preconditions.checkArgument(ExtSamplingUtils.isLogNormalized(sLogWeights, 1e-7));
+    assert ExtSamplingUtils.isLogNormalized(sLogWeights, 1e-7);
 
     while (true) {
       pk = k;
@@ -375,7 +378,8 @@ public class ExtSamplingUtils {
   public static <D> List<D> sampleNoReplaceMultipleLogScale(final double[] logWeights,
       final double logWeightSum, final List<D> domain, final Random random, final int numSamples) {
 
-    Preconditions.checkArgument(domain.size() >= numSamples);
+    Preconditions.checkArgument(domain.size() >= numSamples, 
+        "domain size must be >= numSamples");
     
     if (domain.size() == numSamples) {
       return domain;
@@ -416,7 +420,8 @@ public class ExtSamplingUtils {
 
   public static <D> List<D> sampleMultipleLogScale(final double[] cumulativeLogWeights,
       final double logWeightSum, final List<D> domain, final Random random, final int numSamples) {
-    Preconditions.checkArgument(domain.size() == cumulativeLogWeights.length);
+    Preconditions.checkArgument(domain.size() == cumulativeLogWeights.length,
+        "domain size must be equala to number of cumulative log weights");
 
     final List<D> samples = Lists.newArrayListWithCapacity(numSamples);
     int index;
