@@ -8,6 +8,8 @@ import no.uib.cipr.matrix.DenseCholesky;
 import no.uib.cipr.matrix.DenseMatrix;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
+import gov.sandia.cognition.math.matrix.Vector;
+import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.math.matrix.decomposition.AbstractSingularValueDecomposition;
 import gov.sandia.cognition.math.matrix.mtj.DenseMatrixFactoryMTJ;
 import gov.sandia.cognition.math.matrix.mtj.DiagonalMatrixFactoryMTJ;
@@ -16,6 +18,13 @@ import gov.sandia.cognition.math.matrix.mtj.decomposition.SingularValueDecomposi
 
 public class ExtMatrixUtils {
 
+  public static Vector getDiagonal(Matrix matrix) {
+    Vector result = VectorFactory.getDefault().createVector(matrix.getNumColumns());
+    for (int i = 0; i < matrix.getNumColumns(); i++) {
+      result.setElement(i, matrix.getElement(i, i));
+    }
+    return result;
+  }
 
   /**
    * Computes the Penrose pseudo-inverse via SVD, reducing the resulting matrix's
@@ -102,7 +111,7 @@ public class ExtMatrixUtils {
   public static Matrix getDiagonalInverse(Matrix S, double lowerTolerance) {
     Preconditions.checkArgument(lowerTolerance >= 0d);
     final Matrix result =
-        MatrixFactory.getDefault().createMatrix(S.getNumColumns(), S.getNumColumns());
+        MatrixFactory.getDiagonalDefault().createMatrix(S.getNumColumns(), S.getNumColumns());
     for (int i = 0; i < Math.min(S.getNumColumns(), S.getNumRows()); i++) {
       final double sVal = S.getElement(i, i);
       if (Math.abs(sVal) > lowerTolerance) result.setElement(i, i, 1d / sVal);
@@ -118,8 +127,9 @@ public class ExtMatrixUtils {
    * @return
    */
   public static Matrix getDiagonalSqrt(Matrix mat, double tolerance) {
-    Preconditions.checkArgument(tolerance > 0d);
-    final Matrix result = mat.clone();
+    Preconditions.checkArgument(tolerance >= 0d);
+    final Matrix result = 
+        MatrixFactory.getDiagonalDefault().createMatrix(mat.getNumColumns(), mat.getNumColumns());
     for (int i = 0; i < Math.min(result.getNumColumns(), result.getNumRows()); i++) {
       final double sqrt = Math.sqrt(result.getElement(i, i));
       if (sqrt > tolerance) result.setElement(i, i, sqrt);

@@ -328,6 +328,34 @@ public class ExtSamplingUtilsTest {
   }
 
   /**
+   * Sample one from the no-replace sampler and make sure
+   * it gives a good sample distribution, just for a sanity check. 
+   */
+  @Test
+  public void testResampleNoReplaceES1() {
+    double[] logWeights = {Math.log(6d/10d), Math.log(2d/10d), Math.log(1d/10d), Math.log(1d/10d)};
+    List<String> domain = Lists.newArrayList("e1", "e2", "e3", "e4");
+    Random random = new Random();
+    final int numSamples = 1;
+    final int R = 3000000;
+
+    CountedDataDistribution<String> sampleDist = new CountedDataDistribution<String>(false);
+    for (int i = 0; i < R; i++) {
+      List<String> result = ExtSamplingUtils.sampleNoReplaceMultipleLogScaleES(
+          logWeights, domain, random, numSamples);
+      sampleDist.incrementAll(result);
+    }
+    
+    int i = 0;
+    for (String el : domain) {
+      System.out.println(el + "=" + sampleDist.getFraction(el) + "(" + Math.exp(logWeights[i]) + ")");
+      assertEquals(logWeights[i], sampleDist.getLogFraction(el), 1e-2);
+      i++;
+    }
+    
+  }
+
+  /**
    * Just exploring the water-filling behavior
    */
 //  @Test

@@ -4,14 +4,18 @@ import gov.sandia.cognition.collection.ArrayUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.primitives.Doubles;
 import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.statistics.distribution.WFCountedDataDistribution;
@@ -58,14 +62,6 @@ public class ExtSamplingUtils {
       resultObjects = nonZeroObjects;
       log.debug("removed zero weights");
 
-//    } else if (nonZeroCount < N) {
-//      /*
-//       * In this case, we need to just plain 'ol resample 
-//       */
-//      resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
-//          nonZeroTotal, nonZeroObjects, random, N, false);
-//      resultWeights = Collections.nCopies(N, -Math.log(N));
-//      log.warn("non-zero less than N");
     } else {
 
       final double logAlpha = findLogAlpha(Doubles.toArray(nonZeroLogWeights),
@@ -74,8 +70,8 @@ public class ExtSamplingUtils {
         /*
          * Plain 'ol resample here, too 
          */
-        resultObjects = sampleNoReplaceMultipleLogScale(Doubles.toArray(nonZeroLogWeights), 
-            nonZeroTotal, nonZeroObjects, random, N);
+        resultObjects = sampleNoReplaceMultipleLogScaleES(Doubles.toArray(nonZeroLogWeights), 
+            nonZeroObjects, random, N);
         resultLogWeights = Collections.nCopies(N, -Math.log(N));
         log.warn("logAlpha = 0");
       } else {
@@ -105,8 +101,8 @@ public class ExtSamplingUtils {
           /*
            * All weights are below, resample
            */
-          resultObjects = sampleNoReplaceMultipleLogScale(Doubles.toArray(nonZeroLogWeights), 
-              nonZeroTotal, nonZeroObjects, random, N);
+          resultObjects = sampleNoReplaceMultipleLogScaleES(Doubles.toArray(nonZeroLogWeights), 
+              nonZeroObjects, random, N);
           resultLogWeights = Collections.nCopies(N, -Math.log(N));
           log.debug("all below logAlpha");
         } else {
@@ -117,8 +113,8 @@ public class ExtSamplingUtils {
              * Resample the below beta entries
              */
             final int resampleN = N - keeperLogWeights.size();
-            List<D> belowObjectsResampled = sampleNoReplaceMultipleLogScale(Doubles.toArray(belowLogWeights), 
-                belowPTotal, belowObjects, random, resampleN);
+            List<D> belowObjectsResampled = sampleNoReplaceMultipleLogScaleES(Doubles.toArray(belowLogWeights), 
+                belowObjects, random, resampleN);
             List<Double> belowWeightsResampled = Collections.nCopies(resampleN, -logAlpha);
             
             keeperObjects.addAll(belowObjectsResampled);
@@ -330,7 +326,7 @@ public class ExtSamplingUtils {
    * @param ans
    * @param rng
    */
-  static void probSampleNoReplace(int n, double[] p, int[] perm, int nans,
+  public static void probSampleNoReplace(int n, double[] p, int[] perm, int nans,
       int[] ans, Random rng) {
     double rT, mass, totalmass;
     int i, j, k, n1;
@@ -344,10 +340,10 @@ public class ExtSamplingUtils {
     revsort(p, perm, n);
 
     /* Compute the sample */
-    totalmass = 1;
+    totalmass = 1d;
     for (i = 0, n1 = n - 1; i < nans; i++, n1--) {
       rT = totalmass * rng.nextDouble();
-      mass = 0;
+      mass = 0d;
       for (j = 0; j < n1; j++) {
         mass += p[j];
         if (rT <= mass)
@@ -362,12 +358,16 @@ public class ExtSamplingUtils {
     }
   }
 
+//   * <a href="https://www.sciencedirect.com/science/article/pii/S002001900500298X">
+//   *  Pavlos S. Efraimidis, Paul G. Spirakis, Weighted random sampling with a reservoir</a>
+//   *  from the discussion 
+//   *  <a href="http://stackoverflow.com/questions/15113650/faster-weighted-sampling-without-replacement">
+//   *  here</a>
   /**
-   * Resample without replacement based on 
-   * <a href="https://www.sciencedirect.com/science/article/pii/S002001900500298X">
-   *  Pavlos S. Efraimidis, Paul G. Spirakis, Weighted random sampling with a reservoir</a>
-   *  from the discussion <a href="http://stackoverflow.com/questions/15113650/faster-weighted-sampling-without-replacement">
-   *  here</a>
+   * Sample without replacement for a given support/domain and log weights.
+   * 
+   * @see ExtSamplingUtils#probSampleNoReplace(int, double[], int[], int, int[], Random) 
+   *  
    * @param logWeights
    * @param logWeightSum
    * @param domain
@@ -385,10 +385,13 @@ public class ExtSamplingUtils {
       return domain;
     }
     
+    double weightSum = 0d;
     double[] weights = new double[logWeights.length];
     for (int i = 0; i < weights.length; i++) {
       weights[i] = Math.exp(logWeights[i] - logWeightSum);
+      weightSum += weights[i];
     }
+    Preconditions.checkState(Math.abs(weightSum - 1d) < 1e-5);
     int[] perm = new int[logWeights.length];
     int[] ans = new int[numSamples];
     probSampleNoReplace(logWeights.length, weights, perm, numSamples, ans, random);
@@ -397,23 +400,138 @@ public class ExtSamplingUtils {
       samples.add(domain.get(ans[i]-1));
     }
     
-//    TreeMap<Double, D> tMap = Maps.newTreeMap(new Comparator<Double>() {
-//      @Override
-//      public int compare(Double o1, Double o2) {
-//        return (o1 > o2) ? -1 : 1;
-//      }
-//      
-//    });
-//    double[] key = new double[logWeights.length];
-//    for (int i = 0; i < logWeights.length; i++) {
-//      final double logWeight = logWeights[i] - logWeightSum;
-//      key[i] = Math.log(random.nextDouble())/logWeight;
-//      tMap.put(key[i], domain.get(i));
-//    }
-//    
-//    while(samples.size() < numSamples) {
-//      samples.add(tMap.pollFirstEntry().getValue());
-//    }
+    return samples;
+  }
+
+  /**
+   * Streaming weighted sampling without replacement.
+   * 
+   * @param logWeights
+   * @param domain
+   * @param random
+   * @param numSamples
+   * @return
+   */
+  public static <D> List<D> sampleNoReplaceMultipleLogScaleES(final double[] logWeights,
+      final List<D> domain, final Random random, final int numSamples) {
+
+    Preconditions.checkArgument(domain.size() >= numSamples, 
+        "domain size must be >= numSamples");
+    
+    if (domain.size() == numSamples) {
+      return domain;
+    }
+
+    TreeMap<Double, D> tMap = Maps.newTreeMap(new Comparator<Double>() {
+      @Override
+      public int compare(Double o1, Double o2) {
+        return (o1 > o2) ? -1 : 1;
+      }
+    });
+
+    for (int i = 0; i < logWeights.length; i++) {
+      final double sampleKey = Math.pow(random.nextDouble(), 
+          1d/Math.exp(logWeights[i]));
+      tMap.put(sampleKey, domain.get(i));
+    }
+
+    final List<D> samples = Lists.newArrayListWithCapacity(numSamples);
+    while(samples.size() < numSamples) {
+      samples.add(tMap.pollFirstEntry().getValue());
+    }
+    
+    return samples;
+  }
+
+  /**
+   * Streaming weighted sampling without replacement using exponential jumps.
+   * 
+   * @param logWeights
+   * @param domain
+   * @param random
+   * @param numSamples
+   * @return
+   */
+  public static <D> List<D> sampleNoReplaceMultipleLogScaleStreamES(final double[] logWeights,
+      final List<D> domain, final Random random, final int numSamples) {
+
+    Preconditions.checkArgument(domain.size() >= numSamples, 
+        "domain size must be >= numSamples");
+    
+    if (domain.size() == numSamples) {
+      return domain;
+    }
+
+    TreeMap<Double, D> tMap = Maps.newTreeMap(new Comparator<Double>() {
+      @Override
+      public int compare(Double o1, Double o2) {
+        return (o1 > o2) ? -1 : 1;
+      }
+    });
+
+    double r1 = 0d, expJump = 0d, currentWeight = 0d, nextWeight;
+    boolean inFlight = false;
+    long itemsProcessed = 0;
+    for (int i = 0; i < logWeights.length; i++) {
+      Entry<Double, D> rWorstItem;
+      double currentThreshold;
+
+      final D thisItem = domain.get(i);
+      final double thisWeight = Math.exp(logWeights[i]);
+      if (itemsProcessed < numSamples) {
+        final double newWeight = Math.pow(random.nextDouble(), 1d/thisWeight);
+        tMap.put(newWeight, thisItem);
+      } else {
+  			rWorstItem = tMap.firstEntry();
+  			currentThreshold = rWorstItem.getKey();
+        if (!inFlight) {
+  				// Generate exponential jump
+  				r1 = random.nextDouble();
+  				expJump = Math.log(r1) / Math.log(currentThreshold);
+  				
+  				currentWeight = 0d;
+  				nextWeight = 0d;
+  				
+  				inFlight = true;
+          
+        } else {
+    			// Check if the Exponential Jump lands on the current item
+    			nextWeight = currentWeight + thisWeight;
+    			if (expJump < nextWeight) {
+    				double lowJ = currentWeight;
+    				double highJ = nextWeight;
+    				
+    				// We have to calculate a key for the new item
+    				// The key has to be in the interval (key-of-replaced-item, max-key]
+    				double lowR = Math.pow(currentThreshold, thisWeight);
+    
+    				// We use the random number of the exponential jump 
+    				// to calculate the random key
+    				// The random number has to be "normalized" for its new use
+    				double lthr = Math.pow(currentThreshold, highJ);
+    				double hthr = Math.pow(currentThreshold, lowJ);
+    				double r2 = (r1 - lthr) / (hthr - lthr);
+    
+    				// OK double r3 = lowR + (1-lowR) * myRandom.rand();
+    				double r3 = lowR + (1 - lowR) * r2; // myRandom.rand();
+    				double key = Math.pow(r3, 1 / thisWeight);
+    
+    				// Insert the Item into the Reservoir
+    				tMap.put(key, thisItem);
+    				
+    				inFlight = false;
+    			} else {
+    				currentWeight = nextWeight;
+    			}	
+        }
+    		itemsProcessed++;
+      }
+    }
+    
+    final List<D> samples = Lists.newArrayListWithCapacity(numSamples);
+    while(samples.size() < numSamples) {
+      samples.add(tMap.pollFirstEntry().getValue());
+    }
     
     return samples;
   }
