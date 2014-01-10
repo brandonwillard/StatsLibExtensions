@@ -337,6 +337,7 @@ public class DlmUtils {
         curX = F;
       } else {
         F = filter.getModel().getC();
+        curX = F;
       }
 
       Vector observationMean = F.times(currentState);

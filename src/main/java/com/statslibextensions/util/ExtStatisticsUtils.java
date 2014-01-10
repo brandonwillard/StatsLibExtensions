@@ -6,14 +6,18 @@ import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.math.matrix.mtj.AbstractMTJMatrix;
+import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.distribution.ChiSquareDistribution;
 import gov.sandia.cognition.statistics.distribution.InverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.util.Weighted;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 
 import no.uib.cipr.matrix.DenseVector;
 import no.uib.cipr.matrix.UpperSPDDenseMatrix;
@@ -22,6 +26,10 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Multisets;
+import com.google.common.collect.Sets;
+import com.google.common.collect.TreeMultiset;
+import com.statslibextensions.math.MutableDoubleCount;
 
 public class ExtStatisticsUtils {
 
@@ -69,6 +77,12 @@ public class ExtStatisticsUtils {
     return d4;
   }
 
+  /**
+   * Computes the variance for an inverse wishart distribution.
+   * 
+   * @param invWishart
+   * @return
+   */
   public static Matrix getInvWishartVar(InverseWishartDistribution invWishart) {
     final int dim = invWishart.getInputDimensionality();
     final int dof = invWishart.getDegreesOfFreedom();
@@ -88,6 +102,14 @@ public class ExtStatisticsUtils {
     return cov;
   }
 
+  /**
+   * Evaluate a multivariate normal pdf using the MTJ symmetric matrix
+   * <code>solve</code> method.
+   * @param input
+   * @param mean
+   * @param cov
+   * @return
+   */
   public static double logEvaluateNormal(Vector input, Vector mean, Matrix cov) {
     Preconditions.checkArgument(input.getDimensionality() == mean.getDimensionality());
     final int k = mean.getDimensionality();
@@ -106,30 +128,6 @@ public class ExtStatisticsUtils {
     final double result = logLeadingCoefficient - 0.5 * zsquared;
 
     return result;
-  }
-
-  /**
-   * Low variance sampler. Follows Thrun's example in Probabilistic Robots.
-   */
-  public static <SupportType extends Weighted> Multiset<SupportType> lowVarianceSampler(Random rng,
-      Multiset<SupportType> particles, double M) {
-    Preconditions.checkArgument(particles.size() > 0);
-
-    final Multiset<SupportType> resampled = HashMultiset.create((int) M);
-    final double r = rng.nextDouble() / M;
-    final Iterator<SupportType> pIter = particles.iterator();
-    SupportType p = pIter.next();
-    double c = p.getWeight() - Math.log(particles.count(p));
-    for (int m = 0; m < M; ++m) {
-      final double U = Math.log(r + m / M);
-      while (U > c && pIter.hasNext()) {
-        p = pIter.next();
-        c = LogMath.add(p.getWeight() - Math.log(particles.count(p)), c);
-      }
-      resampled.add(p);
-    }
-
-    return resampled;
   }
 
   /**
@@ -294,6 +292,13 @@ public class ExtStatisticsUtils {
 
   }
 
+  /**
+   * Sample from an inverse wishart distribution.  Uses chi-square samples.
+   * 
+   * @param invWish
+   * @param rng
+   * @return
+   */
   public static Matrix sampleInvWishart(InverseWishartDistribution invWish, Random rng) {
     final int p = invWish.getInverseScale().getNumRows();
     final Vector Zdiag = VectorFactory.getDenseDefault().createVector(p);
@@ -326,6 +331,36 @@ public class ExtStatisticsUtils {
       sum += array[i];
     }
     return sum;
+  }
+  
+  public static <D> String prettyPrintDistribution(DataDistribution<D> dist) {
+    Multiset<Entry<D, ? extends Number>> orderedDist = TreeMultiset.create(
+        new Comparator<Entry<D, ? extends Number>>() {
+          @Override
+          public int compare(Entry<D, ? extends Number> o1,
+              Entry<D, ? extends Number> o2) {
+//            return o1.getValue().doubleValue() < o2.getValue().doubleValue() ? -1 : 1;
+            return -Double.compare(o1.getValue().doubleValue(), 
+                o2.getValue().doubleValue());
+          }
+        });
+    orderedDist.addAll(dist.asMap().entrySet());
+    StringBuffer sb = new StringBuffer();
+    for (Entry<D, ? extends Number> obj : orderedDist.elementSet()) {
+      final int setCount = orderedDist.count(obj);
+      sb.append(dist.getFraction(obj.getKey()) * setCount);
+      sb.append(" (");
+      sb.append(dist.getLogFraction(obj.getKey()) + Math.log(setCount));
+      sb.append(")");
+      if (obj.getValue() instanceof MutableDoubleCount) {
+        sb.append(" [" + ((MutableDoubleCount) obj.getValue()).count + "]");
+      }
+      sb.append(" =\n\t" + obj.getKey().toString());
+      if (setCount > 1)
+        sb.append("\n...(only displaying first result of " + setCount + ")");
+      sb.append("\n");
+    }
+    return sb.toString();
   }
 
 }

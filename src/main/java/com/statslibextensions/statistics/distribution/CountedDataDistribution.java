@@ -25,18 +25,17 @@ import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.math.MutableDoubleCount;
 
 /**
- * Copy of DefaultDataDistribution that an object count and provides an
- * configurable scale (log or not).
+ * Copy of DefaultDataDistribution that keeps an object count and 
+ * provides a configurable scale (log or not).
  * 
  * @author bwillard
- * 
  * @param <KeyType>
  */
 public class CountedDataDistribution<KeyType> extends
     AbstractDataDistribution<KeyType> {
 
   /**
-   * A factory for {@code DefaultCountedDataDistribution} objects using some
+   * A factory for {@code CountedDataDistribution} objects using some
    * given initial capacity for them.
    * 
    * @param <DataType>
@@ -398,12 +397,12 @@ public class CountedDataDistribution<KeyType> extends
 
   @Override
   public double decrement(KeyType key) {
-    return this.decrement(key, this.isLogScale ? 0d : 1d);
+    return this.adjust(key, this.get(key), -1);
   }
 
   @Override
   public double decrement(KeyType key, double value) {
-    return super.decrement(key, value);
+    return this.adjust(key, value, -1);
   }
 
   @Override

@@ -22,6 +22,15 @@ public class WFCountedDataDistribution<T> extends
     return new WFCountedDataDistribution<T>(isLogScale);
   }
 
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("WFCountedDataDistribution [wasWaterFillingApplied=")
+        .append(this.wasWaterFillingApplied).append(", isLogScale=")
+        .append(this.isLogScale).append(", map=").append(this.map).append("]");
+    return builder.toString();
+  }
+
   public static <T> WFCountedDataDistribution<T> create(int initialCapacity, boolean isLogScale) {
     return new WFCountedDataDistribution<T>(initialCapacity, isLogScale);
   }

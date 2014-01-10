@@ -1,22 +1,28 @@
-package com.statslibextensions.util;
+package com.statslibextensions.statistics;
 
 import static org.junit.Assert.*;
+import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
 import gov.sandia.cognition.statistics.distribution.PoissonDistribution;
 import gov.sandia.cognition.util.Pair;
+import gov.sandia.cognition.util.WeightedValue;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.TreeSet;
 
 import org.junit.Test;
 
 import com.google.common.collect.DiscreteDomains;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Range;
 import com.google.common.collect.Ranges;
 import com.google.common.primitives.Doubles;
@@ -24,6 +30,7 @@ import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.math.MutableDoubleCount;
 import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.statistics.ExtSamplingUtils;
+import com.statslibextensions.util.ExtStatisticsUtils;
 
 public class ExtSamplingUtilsTest {
 
@@ -298,6 +305,123 @@ public class ExtSamplingUtilsTest {
 
     assertTrue(ExtSamplingUtils.isLogNormalized(logWeights, 1e-7));
   }
+  
+  /**
+   * Test resampling with replacement for num samples >> support size.
+   * Weights are deterministic.
+   */
+  @Test
+  public void testResampleWithReplace1() {
+    double[] logWeights = {Math.log(6d/10d), Math.log(2d/10d), Math.log(1d/10d), Math.log(1d/10d)};
+    double[] cumulLogWeights = ExtSamplingUtils.accumulate(Doubles.asList(logWeights));
+    List<String> domain = Lists.newArrayList("e1", "e2", "e3", "e4");
+    Random random = new Random();
+    final int numSamples = 200000;
+    final int R = 1;
+
+    CountedDataDistribution<String> sampleDist = new CountedDataDistribution<String>(false);
+    for (int i = 0; i < R; i++) {
+      List<String> result = ExtSamplingUtils.sampleReplaceCumulativeLogScale(
+          cumulLogWeights, domain, random, numSamples);
+      sampleDist.incrementAll(result);
+    }
+    
+    int i = 0;
+    for (String el : domain) {
+      System.out.println(el + "=" + sampleDist.getFraction(el) + "(" + Math.exp(logWeights[i]) + ")");
+      assertEquals(Math.exp(logWeights[i]), 
+          sampleDist.getFraction(el), 1e-2);
+      i++;
+    }
+    
+  }
+
+  /**
+   * Test resampling with replacement for num samples >> support size.
+   * Randomly determines weights for test
+   */
+  @Test
+  public void testResampleWithReplace2() {
+    Random random = new Random();
+    final int N = 10;
+    List<Double> logWeights = Lists.newArrayList();
+    List<String> domain = Lists.newArrayList();
+    DataDistribution<String> initialDist = new DefaultDataDistribution<String>();
+//        new CountedDataDistribution<String>(false);
+    while (initialDist.getDomainSize() < 10) {
+      final double smple = Math.log(random.nextDouble());
+      logWeights.add(smple);
+      String obj = "obj" + random.nextInt(N);
+      domain.add(obj);
+      initialDist.increment(obj, Math.exp(smple));
+    }
+    System.out.println(ExtStatisticsUtils.prettyPrintDistribution(initialDist));
+
+    double[] cumulLogWeights = ExtSamplingUtils.accumulate(logWeights);
+    final int numSamples = 200000;
+    final int R = 1;
+
+    /*
+     * numSamples >> N
+     */
+    CountedDataDistribution<String> sampleDist = new CountedDataDistribution<String>(false);
+    for (int i = 0; i < R; i++) {
+      List<String> result = 
+//          (List<String>) initialDist.sample(random, numSamples);
+          ExtSamplingUtils.sampleReplaceCumulativeLogScale(
+          cumulLogWeights, domain, random, numSamples);
+      sampleDist.incrementAll(result);
+    }
+    
+    for (String el : domain) {
+      System.out.println(el + "=" + sampleDist.getFraction(el) 
+          + "(" + initialDist.getFraction(el) + ")");
+      assertEquals(initialDist.getFraction(el), sampleDist.getFraction(el), 1e-2);
+    }
+  }
+
+  /**
+   * Test resampling with replacement for num samples < support size.
+   * Randomly determines weights for test
+   */
+  @Test
+  public void testResampleWithReplace3() {
+    Random random = new Random();
+    final int N = 100;
+    List<Double> logWeights = Lists.newArrayList();
+    List<String> domain = Lists.newArrayList();
+    DataDistribution<String> initialDist = new DefaultDataDistribution<String>();
+//        new CountedDataDistribution<String>(false);
+    while (initialDist.getDomainSize() < N) {
+      final double smple = Math.log(random.nextDouble());
+      logWeights.add(smple);
+      String obj = "obj" + random.nextInt(N);
+      domain.add(obj);
+      initialDist.increment(obj, Math.exp(smple));
+    }
+    System.out.println(ExtStatisticsUtils.prettyPrintDistribution(initialDist));
+
+    double[] cumulLogWeights = ExtSamplingUtils.accumulate(logWeights);
+    /*
+     * Now, do the same for numSamples < N
+     */
+    final int M = 10;
+    final int R = 50000;
+    CountedDataDistribution<String> sampleDist = new CountedDataDistribution<String>(false);
+    for (int i = 0; i < R; i++) {
+      List<String> result = ExtSamplingUtils.sampleReplaceCumulativeLogScale(
+        cumulLogWeights, domain, random, M);
+      sampleDist.incrementAll(result);
+    }
+    
+    for (String el : initialDist.getDomain()) {
+      final double obsFreq = sampleDist.getCount(el)/(double)R;
+      final double expFreq = M * initialDist.getFraction(el);
+      System.out.println(el + ":\tfreq=" + obsFreq + "\t(" + expFreq  + ")");
+      assertEquals(expFreq, obsFreq, 1e-2);
+    }
+    
+  }
 
   /**
    * Sample one from the no-replace sampler and make sure
@@ -356,25 +480,92 @@ public class ExtSamplingUtilsTest {
   }
 
   /**
-   * Just exploring the water-filling behavior
+   * Test the order distributions, i.e. check the observed frequencies
+   * for the first, second,... sampled particles.
    */
 //  @Test
-//  public void testWaterFillingBehavior() {
-//
-//    List<Double> testLogWeights = Lists.newArrayList();
-//    List<Integer> testObjects = Lists.newArrayList();
-//    Range<Integer> range = Ranges.closed(0, 100);
-//    PoissonDistribution pd = new PoissonDistribution(2d);
-//    for (int i : range.asSet(DiscreteDomains.integers())) {
-//      testLogWeights.add(pd.getProbabilityFunction().logEvaluate(i));
-//      testObjects.add(i);
-//    }
-//
-//    final Random rng = new Random(123569869l);
-//    final int N = 4;
-//    DataDistribution<Integer> wfResampleResults =
-//        SamplingUtils.waterFillingResample(
-//            Doubles.toArray(testLogWeights), 0d, testObjects, rng, N);
-//
-//  }
+  public void testResampleNoReplaceES2() {
+    Random random = new Random();
+    final int N = 10;
+    List<Double> logWeights = Lists.newArrayList();
+    List<String> domain = Lists.newArrayList();
+    DataDistribution<String> initialDist = new DefaultDataDistribution<String>();
+    while (initialDist.getDomainSize() < N) {
+      final double smple = Math.log(random.nextDouble());
+      logWeights.add(smple);
+      String obj = "obj" + random.nextInt(N);
+      domain.add(obj);
+      initialDist.increment(obj, Math.exp(smple));
+    }
+    System.out.println(ExtStatisticsUtils.prettyPrintDistribution(initialDist));
+    final int R = 50000;
+
+    List<Map<String, Double>> expectedOrderMeans = Lists.newArrayList();
+    List<DataDistribution<String>> orderStats = Lists.newArrayList();
+    for (int k = 0; k < N; k++) {
+      DataDistribution<String> sampleDist = new CountedDataDistribution<String>(false);
+      orderStats.add(sampleDist);
+      // TODO FIXME need to compute combinations and their probabilities
+    }
+
+    for (int i = 0; i < R; i++) {
+      List<String> result = ExtSamplingUtils.sampleNoReplaceMultipleLogScaleES(
+         Doubles.toArray(logWeights), domain, random, logWeights.size());
+      for (int k = 0; k < N; k++) {
+        orderStats.get(k).increment(result.get(k));
+      }
+    }
+    
+    for (int k = 0; k < N; k++) {
+      for (String el : initialDist.getDomain()) {
+        final double obsFreq = orderStats.get(k).getFraction(el);
+        final double expFreq = expectedOrderMeans.get(k).get(el);
+        System.out.println(el + ":\tfreq=" + obsFreq + "\t(" + expFreq  + ")");
+        assertEquals(expFreq, obsFreq, 1e-2);
+      }
+
+    }
+  }
+
+  /**
+   * Test resampling with replacement (systematic sampler) 
+   * for num samples >> support size.
+   * Randomly determines weights for test
+   */
+  @Test
+  public void testLowVarResampleWithReplace1() {
+    Random random = new Random();
+    final int N = 10;
+    List<Double> logWeights = Lists.newArrayList();
+    List<String> domain = Lists.newArrayList();
+    DataDistribution<String> initialDist = new DefaultDataDistribution<String>();
+    while (initialDist.getDomainSize() < 10) {
+      final double smple = Math.log(random.nextDouble());
+      logWeights.add(smple);
+      String obj = "obj" + random.nextInt(N);
+      domain.add(obj);
+      initialDist.increment(obj, Math.exp(smple));
+    }
+    System.out.println(ExtStatisticsUtils.prettyPrintDistribution(initialDist));
+
+    final int numSamples = 200000;
+    final int R = 1;
+
+    /*
+     * numSamples >> N
+     */
+    CountedDataDistribution<String> sampleDist = new CountedDataDistribution<String>(false);
+    TreeSet<WeightedValue<String>> wvalues = ExtSamplingUtils.getLogWeighedList(initialDist);
+    for (int i = 0; i < R; i++) {
+      Multiset<String> result = 
+          ExtSamplingUtils.lowVarianceSampler(wvalues, random, numSamples);
+      sampleDist.incrementAll(result);
+    }
+    
+    for (String el : domain) {
+      System.out.println(el + "=" + sampleDist.getFraction(el) 
+          + "(" + initialDist.getFraction(el) + ")");
+      assertEquals(initialDist.getFraction(el), sampleDist.getFraction(el), 1e-2);
+    }
+  }
 }

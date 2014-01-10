@@ -113,8 +113,11 @@ public class ObservedValue<O, D> {
 
   @Override
   public String toString() {
-    return "ObservedValue [time=" + time + ", observedValue=" + observedValue
-        + "]";
+    StringBuilder builder = new StringBuilder();
+    builder.append("ObservedValue [time=").append(this.time)
+        .append(", observedValue=").append(this.observedValue)
+        .append(", data=").append(this.data).append("]");
+    return builder.toString();
   }
   
   
