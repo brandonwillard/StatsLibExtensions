@@ -1,22 +1,14 @@
 package com.statslibextensions.math.matrix.decomposition;
 
 import com.google.common.base.Preconditions;
-import com.statslibextensions.statistics.ExtSamplingUtils;
-
-import gov.sandia.cognition.math.ComplexNumber;
 import gov.sandia.cognition.math.OperationNotConvergedException;
 import gov.sandia.cognition.math.matrix.DiagonalMatrix;
 import gov.sandia.cognition.math.matrix.Matrix;
-import gov.sandia.cognition.math.matrix.decomposition.AbstractEigenDecomposition;
 import gov.sandia.cognition.math.matrix.mtj.DenseMatrix;
 import gov.sandia.cognition.math.matrix.mtj.DenseMatrixFactoryMTJ;
-import gov.sandia.cognition.math.matrix.mtj.DenseVectorFactoryMTJ;
 import gov.sandia.cognition.math.matrix.mtj.DiagonalMatrixFactoryMTJ;
-import gov.sandia.cognition.math.matrix.mtj.decomposition.EigenDecompositionRightMTJ;
 import gov.sandia.cognition.util.ArrayIndexSorter;
-import no.uib.cipr.matrix.EVD;
 import no.uib.cipr.matrix.LowerSymmDenseMatrix;
-import no.uib.cipr.matrix.Matrices;
 import no.uib.cipr.matrix.SymmDenseEVD;
 
 public class SymmetricMtjEigenDecomp {

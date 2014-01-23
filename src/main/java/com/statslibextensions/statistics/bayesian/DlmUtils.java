@@ -1,17 +1,5 @@
 package com.statslibextensions.statistics.bayesian;
 
-import java.util.List;
-import java.util.Random;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-import com.statslibextensions.util.ExtMatrixUtils;
-import com.statslibextensions.util.ObservedValue;
-import com.statslibextensions.util.ObservedValue.SimObservedValue;
-
-import no.uib.cipr.matrix.DenseMatrix;
-import no.uib.cipr.matrix.DenseVector;
-import no.uib.cipr.matrix.UpperSPDDenseMatrix;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
@@ -19,13 +7,212 @@ import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.math.matrix.mtj.AbstractMTJMatrix;
 import gov.sandia.cognition.math.matrix.mtj.DenseMatrixFactoryMTJ;
 import gov.sandia.cognition.math.matrix.mtj.DenseVectorFactoryMTJ;
-import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
 import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
-import gov.sandia.cognition.util.DefaultPair;
-import gov.sandia.cognition.util.Pair;
+
+import java.util.List;
+import java.util.Random;
+
+import no.uib.cipr.matrix.DenseMatrix;
+import no.uib.cipr.matrix.DenseVector;
+import no.uib.cipr.matrix.UpperSPDDenseMatrix;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.statslibextensions.util.ExtMatrixUtils;
+import com.statslibextensions.util.ObservedValue.SimObservedValue;
 
 public class DlmUtils {
+  
+//  public static void svdPredict(MultivariateGaussian belief, 
+//    KalmanFilter kalmanFilter) {
+//    final Matrix G = kalmanFilter.getModel().getA();
+//
+//    final AbstractSingularValueDecomposition svdC;
+//    if (belief instanceof SvdMultivariateGaussian) {
+//      svdC =
+//          ((SvdMultivariateGaussian) belief).getCovariance().getSvd();
+//    } else {
+//      svdC =
+//          SingularValueDecompositionMTJ
+//              .create(belief.getCovariance());
+//    }
+//
+//    final AbstractSingularValueDecomposition svdModelCov; 
+//    if (kalmanFilter.getModelCovariance() instanceof SvdMatrix) {
+//      svdModelCov =
+//          ((SvdMultivariateGaussian) kalmanFilter.getModelCovariance())
+//          .getCovariance().getSvd();
+//    } else {
+//      svdModelCov =
+//          SingularValueDecompositionMTJ
+//              .create(kalmanFilter.getModelCovariance());
+//    }
+//    final Matrix SUG =
+//        ExtMatrixUtils.getDiagonalSqrt(svdC.getS(), 1e-7)
+//            .times(svdC.getU().transpose()).times(G.transpose());
+//    final Matrix Nw =
+//        ExtMatrixUtils.getDiagonalSqrt(
+//            svdModelCov.getS(), 1e-7).times(
+//            svdModelCov.getU().transpose());
+//    final int nN = SUG.getNumRows() + Nw.getNumRows();
+//    final int nM = SUG.getNumColumns();
+//    final Matrix M1 = MatrixFactory.getDefault().createMatrix(nN, nM);
+//    M1.setSubMatrix(0, 0, SUG);
+//    M1.setSubMatrix(SUG.getNumRows(), 0, Nw);
+//
+//    final AbstractSingularValueDecomposition svdM =
+//        SingularValueDecompositionMTJ.create(M1);
+//    final Matrix S = ExtMatrixUtils.getDiagonalSquare(svdM.getS(), 1e-7);
+//
+//    final AbstractSingularValueDecomposition svdR =
+//        new SimpleSingularValueDecomposition(svdM.getVtranspose()
+//            .transpose(), S, svdM.getVtranspose());
+//
+//    final Matrix R;
+//    if (belief instanceof SvdMultivariateGaussian) {
+//      R = new SvdMatrix(svdR);
+//    } else {
+//      R = svdR.getU().times(svdR.getS()).times(svdR.getVtranspose());
+//    }
+//    /*
+//     * Check that we maintain numerical accuracy for our given model
+//     * design (in which the state covariances are always degenerate).
+//     */
+//    //    Preconditions.checkState((belief.getInputDimensionality() != 2 || svdR.rank() == 1)
+//    //        && (belief.getInputDimensionality() != 4 || svdR.rank() == 2));
+//    //    Preconditions.checkState(svdR.getU().getNumRows() == 2
+//    //        || svdR.getU().getNumRows() == 4);
+//
+//    belief.setMean(G.times(belief.getMean()));
+//    belief.setCovariance(R);
+//
+//    Preconditions.checkState(belief.getCovariance().isSquare()
+//        && belief.getCovariance().isSymmetric());
+//  }
+//  
+//  /**
+//   * Forward filtering using SVDs.
+//   * 
+//   * XXX: Broken!
+//   * TODO: fix this!
+//   * 
+//   * @param belief
+//   * @param observation
+//   */
+//  public static void
+//      svdForwardFilter(Vector observation, 
+//      MultivariateGaussian belief, KalmanFilter kalmanFilter) {
+//
+//    Preconditions.checkArgument(ExtMatrixUtils
+//        .isPosSemiDefinite(belief.getCovariance()));
+//    final Matrix F = kalmanFilter.getModel().getC();
+//
+//    final SvdMatrix svdRMat;
+//    final AbstractSingularValueDecomposition svdR;
+//    if (belief instanceof SvdMultivariateGaussian) {
+//      svdRMat = (SvdMatrix) belief.getCovariance();
+//      svdR =
+//          ((SvdMultivariateGaussian) belief).getCovariance().getSvd();
+//    } else {
+//      svdR =
+//          SingularValueDecompositionMTJ
+//              .create(belief.getCovariance());
+//      svdRMat = new SvdMatrix(svdR);
+//    }
+//
+//    final AbstractSingularValueDecomposition svdMeasureCov; 
+//    if (kalmanFilter.getMeasurementCovariance() instanceof SvdMatrix) {
+//      svdMeasureCov =
+//          ((SvdMultivariateGaussian) kalmanFilter.getMeasurementCovariance())
+//          .getCovariance().getSvd();
+//    } else {
+//      svdMeasureCov =
+//          SingularValueDecompositionMTJ
+//              .create(kalmanFilter.getMeasurementCovariance());
+//    }
+//
+//    final AbstractSingularValueDecomposition svdModelCov; 
+//    final SvdMatrix modelCov;
+//    if (kalmanFilter.getModelCovariance() instanceof SvdMatrix) {
+//      modelCov = ((SvdMultivariateGaussian) kalmanFilter.getModelCovariance())
+//          .getCovariance();
+//      svdModelCov =
+//          ((SvdMultivariateGaussian) kalmanFilter.getModelCovariance())
+//          .getCovariance().getSvd();
+//    } else {
+//      svdModelCov =
+//          SingularValueDecompositionMTJ
+//              .create(kalmanFilter.getModelCovariance());
+//      modelCov = new SvdMatrix(svdModelCov);
+//    }
+//
+//
+//    final Matrix NvInv =
+//        ExtMatrixUtils.getDiagonalInverse(
+//            ExtMatrixUtils.getDiagonalSqrt(
+//                svdMeasureCov.getS(), 1e-7), 1e-7).times(
+//            svdMeasureCov.getU().transpose());
+//    final Matrix NvFU = NvInv.times(F).times(svdR.getU());
+//    final Matrix SRinv =
+//        ExtMatrixUtils.getDiagonalInverse(
+//            ExtMatrixUtils.getDiagonalSqrt(svdR.getS(), 1e-7), 1e-7);
+//    final int nN2 = NvFU.getNumRows() + SRinv.getNumRows();
+//    final int nM2 = SRinv.getNumColumns();
+//    final Matrix M2 =
+//        MatrixFactory.getDefault().createMatrix(nN2, nM2);
+//    M2.setSubMatrix(0, 0, NvFU);
+//    M2.setSubMatrix(NvFU.getNumRows(), 0, SRinv);
+//
+//    final AbstractSingularValueDecomposition svdM2 =
+//        SingularValueDecompositionMTJ.create(M2);
+//    final Matrix S =
+//        MatrixFactory.getDefault().createMatrix(
+//            svdM2.getS().getNumColumns(),
+//            svdM2.getS().getNumColumns());
+//    for (int i = 0; i < Math.min(svdM2.getS().getNumColumns(), svdM2
+//        .getS().getNumRows()); i++) {
+//      final double sVal = svdM2.getS().getElement(i, i);
+//      final double sValInvSq = 1d / (sVal * sVal);
+//      if (sValInvSq > 1e-7) {
+//        S.setElement(i, i, sValInvSq);
+//      }
+//    }
+//    final Matrix UcNew =
+//        svdR.getU().times(svdM2.getVtranspose().transpose());
+//    final AbstractSingularValueDecomposition svdCnew =
+//        new SimpleSingularValueDecomposition(UcNew, S,
+//            UcNew.transpose());
+//
+//    Preconditions.checkArgument(ExtMatrixUtils
+//        .isPosSemiDefinite(UcNew.times(S).times(UcNew.transpose())));
+//
+//    final SvdMatrix Q =
+//        ExtMatrixUtils.symmetricSvdAdd(
+//            svdRMat, modelCov, F);
+//    final Matrix Qinv =
+//        Q.getSvd()
+//            .getU()
+//            .times(
+//                ExtMatrixUtils.getDiagonalInverse(Q.getSvd().getS(),
+//                    1e-7)).times(Q.getSvd().getU().transpose());
+//    Preconditions.checkArgument(ExtMatrixUtils
+//        .isPosSemiDefinite(Qinv));
+//    final Vector e = observation.minus(F.times(belief.getMean()));
+//
+//    final Matrix A =
+//        belief.getCovariance().times(F.transpose()).times(Qinv);
+//    final Vector postMean = belief.getMean().plus(A.times(e));
+//
+//    belief.setMean(postMean);
+//    if (belief instanceof SvdMultivariateGaussian) {
+//      ((SvdMultivariateGaussian) belief).getCovariance().setSvd(
+//          svdCnew);
+//    } else {
+//      belief.setCovariance(svdCnew.getU().times(svdCnew.getS())
+//          .times(svdCnew.getVtranspose()));
+//    }
+//  }
 
   /**
    * Filter/Bayes step for {@code kalmanFilter}, the given prior {@code belief}
@@ -233,7 +420,7 @@ public class DlmUtils {
     final Vector m = a.plus(Ate);
 
     assert ExtMatrixUtils 
-        .isPosSemiDefinite((gov.sandia.cognition.math.matrix.mtj.DenseMatrix) CC);
+        .isPosSemiDefinite(CC);
 
     belief.setCovariance(CC);
     belief.setMean(m);

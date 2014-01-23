@@ -1,15 +1,10 @@
 package com.statslibextensions.statistics;
 
 import static org.junit.Assert.*;
-import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
-import gov.sandia.cognition.statistics.distribution.PoissonDistribution;
-import gov.sandia.cognition.util.Pair;
 import gov.sandia.cognition.util.WeightedValue;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,13 +13,8 @@ import java.util.TreeSet;
 
 import org.junit.Test;
 
-import com.google.common.collect.DiscreteDomains;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
-import com.google.common.collect.Range;
-import com.google.common.collect.Ranges;
 import com.google.common.primitives.Doubles;
 import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.math.MutableDoubleCount;

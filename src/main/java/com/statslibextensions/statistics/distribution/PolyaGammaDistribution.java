@@ -1,9 +1,7 @@
 package com.statslibextensions.statistics.distribution;
 
-import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.statistics.Distribution;
 import gov.sandia.cognition.statistics.distribution.ExponentialDistribution;
-import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
 

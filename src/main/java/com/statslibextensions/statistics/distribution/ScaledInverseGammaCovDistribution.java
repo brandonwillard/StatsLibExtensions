@@ -3,7 +3,6 @@ package com.statslibextensions.statistics.distribution;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
 import gov.sandia.cognition.math.matrix.Matrix;
@@ -13,7 +12,6 @@ import gov.sandia.cognition.statistics.AbstractDistribution;
 import gov.sandia.cognition.statistics.ClosedFormComputableDistribution;
 import gov.sandia.cognition.statistics.ProbabilityFunction;
 import gov.sandia.cognition.statistics.distribution.InverseGammaDistribution;
-import gov.sandia.cognition.util.CloneableSerializable;
 
 public class ScaledInverseGammaCovDistribution 
     extends AbstractDistribution<Matrix> 
@@ -129,6 +127,17 @@ public class ScaledInverseGammaCovDistribution
       return false;
     }
     return true;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("ScaledInverseGammaCovDistribution [dimensionality=");
+    builder.append(dimensionality);
+    builder.append(", getMean()=");
+    builder.append(getMean());
+    builder.append("]");
+    return builder.toString();
   }
 
   public int getDimensionality() {

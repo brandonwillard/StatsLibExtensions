@@ -5,7 +5,6 @@ import com.statslibextensions.math.matrix.SvdMatrix;
 import com.statslibextensions.math.matrix.decomposition.SimpleSingularValueDecomposition;
 
 import no.uib.cipr.matrix.DenseCholesky;
-import no.uib.cipr.matrix.DenseMatrix;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
@@ -131,7 +130,7 @@ public class ExtMatrixUtils {
     final Matrix result = 
         MatrixFactory.getDiagonalDefault().createMatrix(mat.getNumColumns(), mat.getNumColumns());
     for (int i = 0; i < Math.min(result.getNumColumns(), result.getNumRows()); i++) {
-      final double sqrt = Math.sqrt(result.getElement(i, i));
+      final double sqrt = Math.sqrt(mat.getElement(i, i));
       if (sqrt > tolerance) result.setElement(i, i, sqrt);
     }
     return result;

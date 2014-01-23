@@ -1,35 +1,33 @@
 package com.statslibextensions.util;
 
-import gov.sandia.cognition.math.LogMath;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.math.matrix.mtj.AbstractMTJMatrix;
+import gov.sandia.cognition.math.matrix.mtj.DenseMatrixFactoryMTJ;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.distribution.ChiSquareDistribution;
 import gov.sandia.cognition.statistics.distribution.InverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
-import gov.sandia.cognition.util.Weighted;
 
-import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
-import java.util.Set;
 
 import no.uib.cipr.matrix.DenseVector;
+import no.uib.cipr.matrix.NotConvergedException;
+import no.uib.cipr.matrix.SymmDenseEVD;
 import no.uib.cipr.matrix.UpperSPDDenseMatrix;
+import no.uib.cipr.matrix.UpperSymmDenseMatrix;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
-import com.google.common.collect.Multisets;
-import com.google.common.collect.Sets;
 import com.google.common.collect.TreeMultiset;
+import com.google.common.primitives.Doubles;
 import com.statslibextensions.math.MutableDoubleCount;
+import com.statslibextensions.math.matrix.SvdMatrix;
 
 public class ExtStatisticsUtils {
 
@@ -362,5 +360,40 @@ public class ExtStatisticsUtils {
     }
     return sb.toString();
   }
+  
+  /**
+   * Returns a ~99% confidence interval/credibility region by using the largest
+   * eigen value for a normal covariance.
+   * 
+   * @param covar
+   * @return
+   */
+  public static double getLargeNormalCovRadius(Matrix covar) {
+    try {
+
+      if (covar instanceof SvdMatrix) {
+
+        final SvdMatrix svdCovar = (SvdMatrix) covar;
+        final double largestEigenval =
+            svdCovar.getSvd().getS().getElement(0, 0);
+        final double varDistance = 3d * Math.sqrt(largestEigenval);
+        return varDistance;
+      } else {
+        final no.uib.cipr.matrix.Matrix covarMtj =
+            DenseMatrixFactoryMTJ.INSTANCE.copyMatrix(covar)
+                .getInternalMatrix();
+        final SymmDenseEVD evd =
+            new SymmDenseEVD(covarMtj.numRows(), true, false)
+                .factor(new UpperSymmDenseMatrix(covarMtj));
+        final Double largestEigenval =
+            Iterables.getLast(Doubles.asList(evd.getEigenvalues()));
+        final double varDistance = 3d * Math.sqrt(largestEigenval);
+        return varDistance;
+      }
+    } catch (final NotConvergedException e) {
+      return Double.NaN;
+    }
+  }
+ 
 
 }

@@ -8,15 +8,49 @@ import gov.sandia.cognition.math.signals.LinearDynamicalSystem;
 import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 
-import java.util.List;
-
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
-
 public class DlmUtilsTest {
 
+  /**
+   * Simple 1d test.
+   */
+//  @Test
+//  public void testSvdForwardFilter1() {
+//
+//    Matrix modelCovariance1 = MatrixFactory.getDefault().copyArray(
+//        new double[][] {{0d}});
+//
+//    Matrix measurementCovariance = MatrixFactory.getDefault().copyArray(
+//        new double[][] {{1d}});
+//
+//    LinearDynamicalSystem model1 = new LinearDynamicalSystem(
+//        MatrixFactory.getDefault().copyArray(new double[][] {{1d}}),
+//        MatrixFactory.getDefault().copyArray(new double[][] {{0d}}),
+//        MatrixFactory.getDefault().copyArray(new double[][] {{1d}})
+//      );
+//
+//    KalmanFilter kf = new KalmanFilter(model1, modelCovariance1, measurementCovariance);
+//    
+//    MultivariateGaussian belief = kf.createInitialLearnedObject();
+//    belief.setCovariance(MatrixFactory.getDefault().copyArray(new double[][] {{1}}));
+//    
+//    Vector obs1 = VectorFactory.getDefault().copyArray(new double[] {1d});
+//    
+//    MultivariateGaussian filtBelief2 = belief.clone();
+//    DlmUtils.svdForwardFilter(obs1, filtBelief2, kf);
+//    
+//    
+//    Assert.assertArrayEquals(new double[] {1d/2d}, 
+//        filtBelief2.getMean().toArray(), 1e-7d);
+//    Assert.assertArrayEquals(new double[] {1d/2d}, 
+//        filtBelief2.getCovariance().convertToVector().toArray(), 1e-7d);
+//  }
+
+  /**
+   * Simple 1d test.
+   */
   @Test
   public void testSchurForwardFilter1() {
 
@@ -51,6 +85,9 @@ public class DlmUtilsTest {
 
   }
 
+  /**
+   * Simple 1d test.
+   */
   @Test
   public void testSchurBackwardFilter1() {
 

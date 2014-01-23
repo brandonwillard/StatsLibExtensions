@@ -1,7 +1,5 @@
 package com.statslibextensions.math.matrix;
 
-import static org.junit.Assert.*;
-
 import java.util.Random;
 
 import gov.sandia.cognition.math.matrix.Matrix;

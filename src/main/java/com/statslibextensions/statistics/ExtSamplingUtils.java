@@ -3,7 +3,6 @@ package com.statslibextensions.statistics;
 import gov.sandia.cognition.collection.ArrayUtil;
 import gov.sandia.cognition.math.LogMath;
 import gov.sandia.cognition.statistics.DataDistribution;
-import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
 import gov.sandia.cognition.util.DefaultWeightedValue;
 import gov.sandia.cognition.util.Weighted;
 import gov.sandia.cognition.util.WeightedValue;
@@ -20,15 +19,12 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
-import org.netlib.util.doubleW;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.MinMaxPriorityQueue;
-import com.google.common.collect.MinMaxPriorityQueue.Builder;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
@@ -41,7 +37,7 @@ import com.statslibextensions.util.ExtDefaultWeightedValue;
 
 public class ExtSamplingUtils {
   
-  final static Logger log = Logger
+  final public static Logger log = Logger
       .getLogger(ExtSamplingUtils.class);
 
   /**

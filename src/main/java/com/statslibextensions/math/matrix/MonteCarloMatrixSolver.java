@@ -7,7 +7,6 @@ import com.google.common.base.Preconditions;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
-import gov.sandia.cognition.math.matrix.VectorFactory;
 
 
 /**
