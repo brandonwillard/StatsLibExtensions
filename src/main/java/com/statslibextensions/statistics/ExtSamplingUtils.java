@@ -154,24 +154,25 @@ public class ExtSamplingUtils {
         "number of log weights must be >= N");
 
     final List<Double> nonZeroLogWeights = Lists.newArrayList();
-    final List<Double> cumNonZeroLogWeights = Lists.newArrayList();
     final List<D> nonZeroObjects = Lists.newArrayList();
     final DataDistribution<D> nonZeroDist = CountedDataDistribution.create(true);
+
     double nonZeroTotal = Double.NEGATIVE_INFINITY;
+    double normCheck = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < logWeights.length; i++) {
       final double normedLogWeight = logWeights[i] - logWeightSum;
+      normCheck = ExtLogMath.add(normCheck, normedLogWeight);
       if (Double.compare(normedLogWeight, Double.NEGATIVE_INFINITY) > 0d) {
         D obj = Iterables.get(domain, i);
         nonZeroObjects.add(obj);
         nonZeroDist.increment(obj, normedLogWeight);
         nonZeroLogWeights.add(normedLogWeight);
         nonZeroTotal = ExtLogMath.add(nonZeroTotal, normedLogWeight);
-        cumNonZeroLogWeights.add(nonZeroTotal);
       }
     }
     
-    Preconditions.checkState(Math.abs(Iterables.getLast(cumNonZeroLogWeights)) < 1e-7,
-        "log weights must be normalized by the give log weight sum");
+    Preconditions.checkState(Math.abs(normCheck) < 1e-7,
+        "log weights must be normalized by the given log weight sum");
     
     boolean wasWaterFillingApplied = false;
     List<Double> resultLogWeights;

@@ -52,6 +52,13 @@ public class SvdMatrix extends AbstractMTJMatrix {
     }
   }
 
+  public SvdMatrix(Matrix other, boolean symmetric) {
+    this(other);
+    if (symmetric)
+      this.svd = new SimpleSingularValueDecomposition(this.svd.getU(), 
+          this.svd.getS(), this.svd.getU().transpose());
+  }
+
   protected SvdMatrix(Matrix other,
     AbstractSingularValueDecomposition svd) {
     super(new DenseMatrix(other.toArray()));

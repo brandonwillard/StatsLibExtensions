@@ -35,7 +35,7 @@ public class SvdMultivariateGaussian extends MultivariateGaussian {
     this.setMean(other.getMean());
     this.setCovariance((other.getCovariance() instanceof SvdMatrix)
         ? other.getCovariance()
-        : new SvdMatrix(other.getCovariance()));
+        : new SvdMatrix(other.getCovariance(), true));
   }
 
   public SvdMultivariateGaussian(Vector mean, SvdMatrix covariance) {
@@ -101,31 +101,31 @@ public class SvdMultivariateGaussian extends MultivariateGaussian {
   @Override
   public MultivariateGaussian scale(Matrix cov) {
     return super.scale((cov instanceof SvdMatrix) ? cov
-        : new SvdMatrix(cov));
+        : new SvdMatrix(cov, true));
   }
 
   @Override
   public void setCovariance(Matrix cov) {
     super.setCovariance((cov instanceof SvdMatrix) ? cov
-        : new SvdMatrix(cov));
+        : new SvdMatrix(cov, true));
   }
 
   @Override
   public void setCovariance(Matrix cov, double symmetryTolerance) {
     super.setCovariance((cov instanceof SvdMatrix) ? cov
-        : new SvdMatrix(cov), symmetryTolerance);
+        : new SvdMatrix(cov, true), symmetryTolerance);
   }
 
   @Override
   public void setCovarianceInverse(Matrix covarianceInverse) {
-    super.setCovarianceInverse(new SvdMatrix(covarianceInverse));
+    super.setCovarianceInverse(new SvdMatrix(covarianceInverse, true));
   }
 
   @Override
   public void setCovarianceInverse(Matrix cov,
     double symmetryTolerance) {
     super.setCovarianceInverse((cov instanceof SvdMatrix) ? cov
-        : new SvdMatrix(cov), symmetryTolerance);
+        : new SvdMatrix(cov, true), symmetryTolerance);
   }
 
   @Override
