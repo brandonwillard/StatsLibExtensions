@@ -1,8 +1,16 @@
-package com.statslibextensions.statistics;
+package com.statslibextensions.util;
 
 import gov.sandia.cognition.collection.ArrayUtil;
+import gov.sandia.cognition.learning.algorithm.root.RootFinderRiddersMethod;
 import gov.sandia.cognition.math.LogMath;
+import gov.sandia.cognition.math.matrix.Matrix;
+import gov.sandia.cognition.math.matrix.MatrixFactory;
+import gov.sandia.cognition.math.matrix.Vector;
+import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.statistics.DataDistribution;
+import gov.sandia.cognition.statistics.distribution.ChiSquareDistribution;
+import gov.sandia.cognition.statistics.distribution.InverseWishartDistribution;
+import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 import gov.sandia.cognition.util.DefaultWeightedValue;
 import gov.sandia.cognition.util.Weighted;
 import gov.sandia.cognition.util.WeightedValue;
@@ -19,6 +27,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Iterables;
@@ -32,8 +41,6 @@ import com.google.common.primitives.Doubles;
 import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.statistics.distribution.WFCountedDataDistribution;
-import com.statslibextensions.util.ComparableWeighted;
-import com.statslibextensions.util.ExtDefaultWeightedValue;
 
 public class ExtSamplingUtils {
   
@@ -161,6 +168,7 @@ public class ExtSamplingUtils {
     double normCheck = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < logWeights.length; i++) {
       final double normedLogWeight = logWeights[i] - logWeightSum;
+      Preconditions.checkState(!Double.isNaN(normedLogWeight));
       normCheck = ExtLogMath.add(normCheck, normedLogWeight);
       if (Double.compare(normedLogWeight, Double.NEGATIVE_INFINITY) > 0d) {
         D obj = Iterables.get(domain, i);
@@ -301,6 +309,22 @@ public class ExtSamplingUtils {
     }
     return Math.abs(logTotal) < zeroPrec;
   }
+
+  /**
+   * Find the log of alpha (the water-filling cut-off) using
+   * a bracketed root finding algorithm.
+   * 
+   * @see #findLogAlphaRoot(double[], double, int)
+   * @param logWeights
+   * @param logTotalWeight
+   * @param N
+   * @return
+   */
+//  public static double findLogAlphaRoot(final double[] logWeights, 
+//    final double logTotalWeight, final int N) {
+//    RootFinderRiddersMethod ridderMethod = new RootFinderRiddersMethod();
+//
+//  }
 
   /**
    * Find the log of alpha: the water-filling cut-off.
@@ -765,5 +789,170 @@ public class ExtSamplingUtils {
     }
     return samples;
   }
+  
+  
+  /**
+   * 
+   * Inverse CDF method of generating truncated normal random
+   * values.
+   * 
+   * @param rng
+   * @param limUpper
+   * @param limLower
+   * @param mean
+   * @param var
+   * @return
+   */
+  public static double truncNormalSampleCDF(Random rng, double limLower, 
+    double limUpper, double mean, double var) {
+    Preconditions.checkArgument(limLower < limUpper, "lower limit must be < upper limit");
+    final double logPhiUpper = ExtStatisticsUtils.normalCdf(
+        limUpper, mean, Math.sqrt(var), true);
+    final double logPhiLower = ExtStatisticsUtils.normalCdf(
+        limLower, mean, Math.sqrt(var), true);
+    final double logU = Math.log(rng.nextDouble());
+    final double logRangeDiff = LogMath.subtract(logPhiUpper, logPhiLower);
+    final double logUnifInRange = LogMath.add(logPhiLower , logU + logRangeDiff);
+    final double sample = ExtStatisticsUtils.normalQuantile(
+            Math.exp(logUnifInRange), 0d, 1d, true, false) * Math.sqrt(var) + mean;
+    return sample;
+  }
 
+  /**
+   * Inspired by the rejection sampler from R's truncnorm package.
+   * <br>
+   * TODO, FIXME: only uses rejection for the one-sided limits...
+   * 
+   * @param rng
+   * @param limLower
+   * @param limUpper
+   * @param mean
+   * @param var
+   * @return
+   */
+  public static double truncNormalSampleRej(Random rng, double limLower, 
+    double limUpper, double mean, double var) {
+    final double sd = Math.sqrt(var);
+    if (limLower == Double.NEGATIVE_INFINITY && Doubles.isFinite(limUpper) ) {
+      final double beta = (limUpper - mean) / sd;
+      // Exploit symmetry
+      return mean - sd * r_lefttruncnorm(rng, -beta, 0d, 1d);   
+    } else if (Doubles.isFinite(limLower) && limUpper == Double.POSITIVE_INFINITY) {
+      return r_lefttruncnorm(rng, limLower, mean, sd);   
+    } else {
+      return truncNormalSampleCDF(rng, limLower, limUpper, mean, var);
+    }
+  }
+
+  private final static double t1 = 0.15d;
+  private final static double t2 = 2.18d;
+  private final static double t3 = 0.725d;
+  private final static double t4 = 0.45d;      
+
+  private static double r_lefttruncnorm(Random rng, double a, double mean, double sd) {
+    final double alpha = (a - mean) / sd;
+    if (alpha < t4) {
+      return mean + sd * nrs_a_inf(rng, alpha);
+    } else {
+      return mean + sd * ers_a_inf(rng, alpha);
+    }
+  }
+
+  /** 
+   * Normal rejection sampling (a,inf) 
+   */
+  private static double nrs_a_inf(Random rng, double a){
+    double x = -Double.MAX_VALUE;
+    while(x < a){
+        x = rng.nextGaussian();
+    }
+    return x;
+  }  
+  
+  /**
+   *  Exponential rejection sampling (a,inf)
+   */
+  private static double ers_a_inf(Random rng, double a) {
+    double x, rho;
+    do{
+      final double expSmpl = -Math.log(rng.nextDouble()) / a;
+      x = expSmpl + a; 
+      final double xma = x - a;
+      rho = Math.exp(-0.5d * xma * xma);
+    } while (rng.nextDouble() > rho);
+    return x;
+  }
+
+  /**
+   * Sample from an inverse wishart distribution.  Uses chi-square samples.
+   * 
+   * @param invWish
+   * @param rng
+   * @return
+   */
+  public static Matrix sampleInvWishart(InverseWishartDistribution invWish, Random rng) {
+    final int p = invWish.getInverseScale().getNumRows();
+    final Vector Zdiag = VectorFactory.getDenseDefault().createVector(p);
+    int ii = 0;
+    for (int i = invWish.getDegreesOfFreedom(); i >= invWish.getDegreesOfFreedom() - p + 1; i--) {
+      final double chiSmpl = Math.sqrt(ChiSquareDistribution.sample(i, rng, 1).get(0));
+      Zdiag.setElement(ii, chiSmpl);
+      ii++;
+    }
+    final Matrix Z = MatrixFactory.getDenseDefault().createDiagonal(Zdiag);
+  
+    for (int i = 0; i < p; i++) {
+      for (int j = i + 1; j < p; j++) {
+        final double normSample = rng.nextGaussian();
+        Z.setElement(i, j, normSample);
+      }
+    }
+  
+    final Matrix scaleSqrt =
+        ExtMatrixUtils.rootOfSemiDefinite(invWish.getInverseScale().pseudoInverse(1e-9));
+    final Matrix k = Z.times(scaleSqrt);
+    final Matrix wishSample = k.transpose().times(k);
+    final Matrix invWishSample = wishSample.pseudoInverse(1e-9);
+    return invWishSample;
+  }  
+
+//  private static double r_truncnorm(Random rng, 
+//    double a, double b, double mean, double sd) {
+//
+//    final double alpha = (a - mean) / sd;
+//    final double beta = (b - mean) / sd;
+//    final double phi_a = dnorm(alpha, 0.0, 1.0, false);
+//    final double phi_b = dnorm(beta, 0.0, 1.0, true);
+//    if (beta <= alpha) {
+//      return Double.NaN;
+//    } else if (alpha <= 0 && 0 <= beta) { /* 2 */
+//      if (phi_a <= t1 || phi_b <= t1) { /* 2 (a) */
+//        return mean + sd * nrs_a_b(alpha, beta);
+//      } else { /* 2 (b) */
+//        return mean + sd * urs_a_b(alpha, beta);
+//      }
+//    } else if (alpha > 0) { /* 3 */
+//      if (phi_a / phi_b <= t2) { /* 3 (a) */
+//        return mean + sd * urs_a_b(alpha, beta);
+//      } else {
+//        if (alpha < t3) { /* 3 (b) */                
+//          return mean + sd * hnrs_a_b(alpha, beta);
+//        } else { /* 3 (c) */
+//          return mean + sd * ers_a_b(alpha, beta);
+//        }
+//      }
+//    } else { /* 3s */
+//      if (phi_b / phi_a <= t2) { /* 3s (a) */
+//        return mean - sd * urs_a_b(-beta, -alpha);
+//      } else {
+//        if (beta > -t3) { /* 3s (b) */
+//          return mean - sd * hnrs_a_b(-beta, -alpha);
+//        } else { /* 3s (c) */
+//          return mean - sd * ers_a_b(-beta, -alpha);
+//        }
+//      }
+//    }
+//  }    
+  
+  
 }

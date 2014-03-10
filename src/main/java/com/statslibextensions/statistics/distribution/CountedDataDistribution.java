@@ -475,9 +475,22 @@ public class CountedDataDistribution<KeyType> extends
   }
 
   @Override
+  public double get(KeyType key) {
+    if (this.isLogScale) {
+      final MutableDouble entry = this.map.get(key);
+      if (entry == null) {
+        return Double.NEGATIVE_INFINITY;
+      } else {
+        return entry.value;
+      }
+    } else {
+      return super.get(key);
+    }
+  }
+
+  @Override
   public double getLogFraction(KeyType key) {
     if (this.isLogScale) {
-      Preconditions.checkArgument(this.containsKey(key));
       final double keyVal = this.get(key);
       return keyVal - this.getTotal();
     } else {

@@ -8,6 +8,7 @@ import gov.sandia.cognition.math.matrix.mtj.DenseMatrix;
 import gov.sandia.cognition.math.matrix.mtj.decomposition.CholeskyDecompositionMTJ;
 import gov.sandia.cognition.statistics.distribution.InverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
+import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 
 import java.util.Random;
 
@@ -66,33 +67,34 @@ public class ExtStatisticsUtilTest {
     Assert.assertTrue(mat.equals(cov1, 1e-5));
   }
 
+  
+  /**
+   * Make sure the normal cdf works for the general, extreme limits.
+   */
   @Test
-  public void testInvWishartSampling() {
-    final Random rng = //new Random();
-        new Random(123456789);
+  public void testNormalCdf() {
 
-    final Matrix mean =
-        MatrixFactory.getDefault().copyArray(
-            new double[][] { { 100d, 0d }, { 0d, 100d } });
-    final InverseWishartDistribution invWish =
-        new InverseWishartDistribution(MatrixFactory.getDefault()
-            .copyArray(
-                new double[][] { { 1700d, 0d }, { 0d, 1700d } }), 20);
+    for (int i = -1; i < 1; i++) {
+      final double result1 = ExtStatisticsUtils.normalCdf(
+          Double.POSITIVE_INFINITY, i*1d, 1d, false);
+      Assert.assertEquals(1d, result1, 0d);
 
-    MultivariateGaussian.SufficientStatistic ss =
-        new MultivariateGaussian.SufficientStatistic();
-    for (int j = 0; j < 10; j++) {
-      ss = new MultivariateGaussian.SufficientStatistic();
-      for (int i = 0; i < 10000; i++) {
-        final Matrix smpl2 =
-            ExtStatisticsUtils.sampleInvWishart(invWish, rng);
-        ss.update(mean.minus(smpl2).convertToVector());
-      }
-      System.out.println(ss.getMean());
+      final double result2 = ExtStatisticsUtils.normalCdf(
+          Double.NEGATIVE_INFINITY, i*1d, 1d, false);
+      Assert.assertEquals(0d, result2, 0d);
     }
 
-    Assert.assertTrue(Math.abs(ss.getMean().sum()) < 1d);
+    // Now, in log scale
+    for (int i = -1; i < 1; i++) {
+      final double result1 = ExtStatisticsUtils.normalCdf(
+          Double.POSITIVE_INFINITY, i*1d, 1d, true);
+      Assert.assertEquals(0d, result1, 0d);
 
+      final double result2 = ExtStatisticsUtils.normalCdf(
+          Double.NEGATIVE_INFINITY, i*1d, 1d, true);
+      Assert.assertEquals(Double.NEGATIVE_INFINITY, result2, 0d);
+    }
+    
   }
 
 }

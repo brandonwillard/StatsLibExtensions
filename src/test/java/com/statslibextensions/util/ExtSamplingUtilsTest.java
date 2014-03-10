@@ -1,8 +1,14 @@
-package com.statslibextensions.statistics;
+package com.statslibextensions.util;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import gov.sandia.cognition.math.matrix.Matrix;
+import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
+import gov.sandia.cognition.statistics.distribution.InverseWishartDistribution;
+import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
+import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 import gov.sandia.cognition.util.WeightedValue;
 
 import java.util.List;
@@ -19,7 +25,7 @@ import com.google.common.primitives.Doubles;
 import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.math.MutableDoubleCount;
 import com.statslibextensions.statistics.distribution.CountedDataDistribution;
-import com.statslibextensions.statistics.ExtSamplingUtils;
+import com.statslibextensions.util.ExtSamplingUtils;
 import com.statslibextensions.util.ExtStatisticsUtils;
 
 public class ExtSamplingUtilsTest {
@@ -558,4 +564,72 @@ public class ExtSamplingUtilsTest {
       assertEquals(initialDist.getFraction(el), sampleDist.getFraction(el), 1e-2);
     }
   }
+  
+  /**
+   * Just a general sanity check; need to make tighter test bounds.
+   */
+  @Test
+  public void testInvWishartSampling() {
+    final Random rng = //new Random();
+        new Random(123456789);
+
+    final Matrix mean =
+        MatrixFactory.getDefault().copyArray(
+            new double[][] { { 100d, 0d }, { 0d, 100d } });
+    final InverseWishartDistribution invWish =
+        new InverseWishartDistribution(MatrixFactory.getDefault()
+            .copyArray(
+                new double[][] { { 1700d, 0d }, { 0d, 1700d } }), 20);
+
+    MultivariateGaussian.SufficientStatistic ss =
+        new MultivariateGaussian.SufficientStatistic();
+//    for (int j = 0; j < 10; j++) {
+//      ss = new MultivariateGaussian.SufficientStatistic();
+      for (int i = 0; i < 10000; i++) {
+        final Matrix smpl2 =
+            ExtSamplingUtils.sampleInvWishart(invWish, rng);
+        ss.update(mean.minus(smpl2).convertToVector());
+      }
+      System.out.println(ss.getMean());
+//    }
+
+    assertEquals(0d, Math.abs(ss.getMean().sum()), 1d);
+
+  }
+
+  @Test
+  public void testTruncNormSampleRej() {
+    final Random rng = //new Random();
+        new Random(123456789);
+    
+    final double mean = 4d;
+    final double var = 67d;
+    final double sd = Math.sqrt(var);
+    final double limLower = Double.NEGATIVE_INFINITY;
+    final double limUpper = 0d;
+
+    // Remember, these are different...
+//    final double tv1 = UnivariateGaussian.PDF.evaluate(limUpper, mean, var);
+//    final double tv2 = UnivariateGaussian.PDF.evaluate((limUpper - mean)/sd, 0d, 1d);
+    final double phiRatio = 
+        UnivariateGaussian.PDF.evaluate((limUpper-mean)/sd, 0d, 1d)/
+        UnivariateGaussian.CDF.evaluate((limUpper-mean)/sd, 0d, 1d);
+    final double tmean = mean - sd * phiRatio;
+    final double tvar = Math.abs(var * (1d - limUpper * phiRatio - phiRatio*phiRatio));
+
+    UnivariateGaussian.SufficientStatistic ss =
+        new UnivariateGaussian.SufficientStatistic();
+    for (int i = 0; i < 100000; i++) {
+      final double smpl = ExtSamplingUtils.truncNormalSampleRej(rng, 
+          limLower, limUpper, mean, var);
+      ss.update(smpl);
+    }
+    System.out.println(tmean + " ~ " + ss.getMean());
+    System.out.println(tvar + " ~ " + ss.getVariance());
+
+    assertEquals(tmean, ss.getMean(), 1e-1);
+    assertEquals(tvar, ss.getVariance(), 1d);
+
+  }
+  
 }
